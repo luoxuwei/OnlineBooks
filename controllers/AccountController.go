@@ -17,6 +17,13 @@ type AccountController struct {
 	BaseController
 }
 
+//退出登录
+func (c *AccountController) Logout() {
+	c.SetMember(models.Member{})
+	c.SetSecureCookie(common.AppKey(), "login", "", -3600)
+	c.Redirect(beego.URLFor("AccountController.Login"), 302)
+}
+
 //登录
 func (c *AccountController) Login() {
 	var remember CookieRemember
