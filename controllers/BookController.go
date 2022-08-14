@@ -354,3 +354,37 @@ func (c *BookController) Release() {
 
 	c.JsonResult(0, "已发布")
 }
+
+//私有图书创建访问Token
+func (c *BookController) CreateToken() {
+	action := c.GetString("action")
+	bookResult, err := c.isPermission()
+	if err != nil {
+		c.JsonResult(1, err.Error())
+	}
+
+	fmt.Println(bookResult.BookId)
+
+	book := models.NewBook()
+	if _, err := book.Select("book_id", bookResult.BookId); err != nil {
+		c.JsonResult(1, "图书不存在")
+	}
+
+	if action == "create" {
+		if bookResult.PrivatelyOwned == 0 {
+			c.JsonResult(1, "公开图书不能创建令牌")
+		}
+
+		book.PrivateToken = string(utils.Krand(12, utils.KC_RAND_KIND_ALL))
+		if err := book.Update(); err != nil {
+			c.JsonResult(1, "生成阅读失败")
+		}
+		c.JsonResult(0, "ok", c.BaseUrl()+beego.URLFor("DocumentController.Index", ":key", book.Identify, "token", book.PrivateToken))
+	}
+
+	book.PrivateToken = ""
+	if err := book.Update(); err != nil {
+		c.JsonResult(1, "删除令牌失败")
+	}
+	c.JsonResult(0, "ok", "")
+}
