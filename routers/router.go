@@ -21,5 +21,6 @@ func init() {
 	beego.Router("/api/:key/delete", &controllers.DocumentController{}, "post:Delete")
 
 	//图书管理
-	beego.Router("/book", &controllers.BookController{}, "*:Index")                         //我的图书
+	beego.Router("/book", &controllers.BookController{}, "*:Index") //我的图书
+	beego.Router("/book/create", &controllers.BookController{}, "post:Create") //创建图书
 }

@@ -90,3 +90,7 @@ func getFileExt() []string {
 	}
 	return exts
 }
+
+func DefaultCover() string {
+	return beego.AppConfig.DefaultString("cover", "/static/images/book.jpg")
+}

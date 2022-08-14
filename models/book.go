@@ -147,3 +147,22 @@ func (m *Book) SelectPage(pageIndex, pageSize, memberId int, PrivatelyOwned int)
 	}
 	return
 }
+
+func (m *Book) Insert() (err error) {
+	if _, err = orm.NewOrm().Insert(m); err != nil {
+		return
+	}
+
+	relationship := Relationship{BookId: m.BookId, MemberId: m.MemberId, RoleId: 0}
+	if err = relationship.Insert(); err != nil {
+		return err
+	}
+
+	document := Document{BookId: m.BookId, DocumentName: "空白文档", Identify: "blank", MemberId: m.MemberId}
+	var id int64
+	if id, err = document.InsertOrUpdate(); err == nil {
+		documentstore := DocumentStore{DocumentId: int(id), Markdown: ""}
+		err = documentstore.InsertOrUpdate()
+	}
+	return err
+}
