@@ -29,4 +29,7 @@ func init() {
 	beego.Router("/book/setting/save", &controllers.BookController{}, "post:SaveBook")      //保存
 	beego.Router("/book/:key/release", &controllers.BookController{}, "post:Release")       //发布
 	beego.Router("/book/setting/token", &controllers.BookController{}, "post:CreateToken")  //创建Token
+
+	//管理后台
+	beego.Router("/manager/category", &controllers.ManagerController{}, "post,get:Category")
 }

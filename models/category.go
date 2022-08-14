@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/beego/beego/v2/client/orm"
+	"strings"
 )
 
 type Category struct {
@@ -37,4 +38,27 @@ func (m *Category) Find(id int) (cate Category) {
 	cate.Id = id
 	orm.NewOrm().Read(&cate)
 	return cate
+}
+
+//批量新增分类
+func (m *Category) InsertMulti(pid int, cates string) (err error) {
+	slice := strings.Split(cates, "\n")
+	if len(slice) == 0 {
+		return
+	}
+
+	o := orm.NewOrm()
+	for _, item := range slice {
+		if item = strings.TrimSpace(item); item != "" {
+			var cate = Category{
+				Pid:    pid,
+				Title:  item,
+				Status: true,
+			}
+			if o.Read(&cate, "title"); cate.Id == 0 {
+				_, err = o.Insert(&cate)
+			}
+		}
+	}
+	return
 }
