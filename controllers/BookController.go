@@ -388,3 +388,39 @@ func (c *BookController) CreateToken() {
 	}
 	c.JsonResult(0, "ok", "")
 }
+
+//评论
+func (c *BookController) Comment() {
+	if c.Member.MemberId == 0 {
+		c.JsonResult(1, "请先登录在评论")
+	}
+	content := c.GetString("content")
+	if l := len(content); l < 5 || l > 512 {
+		c.JsonResult(1, "评论内容先5-512个字符")
+	}
+	bookId, _ := c.GetInt(":id")
+	if bookId > 0 {
+		if err := new(models.Comments).AddComments(c.Member.MemberId, bookId, content); err != nil {
+			c.JsonResult(1, err.Error())
+		}
+		c.JsonResult(0, "评论成功")
+	}
+	c.JsonResult(1, "文档图书不存在")
+}
+
+//打分
+func (c *BookController) Score() {
+	bookId, _ := c.GetInt(":id")
+	if bookId == 0 {
+		c.JsonResult(1, "文档不存在")
+	}
+
+	score, _ := c.GetInt("score")
+	if uid := c.Member.MemberId; uid > 0 {
+		if err := new(models.Score).AddScore(uid, bookId, score); err != nil {
+			c.JsonResult(1, err.Error())
+		}
+		c.JsonResult(0, "感谢您给当前文档打分")
+	}
+	c.JsonResult(1, "给文档打分失败，请先登录再操作")
+}

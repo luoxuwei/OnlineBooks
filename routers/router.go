@@ -46,4 +46,7 @@ func init() {
 	beego.Router("/regist", &controllers.AccountController{}, "*:Regist")
 	beego.Router("/doregist", &controllers.AccountController{}, "post:DoRegist")
 	beego.Router("/logout", &controllers.AccountController{}, "*:Logout")
+
+	beego.Router("/book/score/:id", &controllers.BookController{}, "*:Score")                   //评分
+	beego.Router("/book/comment/:id", &controllers.BookController{}, "post:Comment")            //评论
 }

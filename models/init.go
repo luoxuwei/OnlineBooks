@@ -24,15 +24,15 @@ func init() {
 */
 
 func TNCategory() string {
-	return "category"
+	return "md_category"
 }
 
 func TNBookCategory() string {
-	return "book_category"
+	return "md_book_category"
 }
 
 func TNBook() string {
-	return "books"
+	return "md_books"
 }
 
 func TNMembers() string {
