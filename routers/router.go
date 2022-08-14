@@ -12,4 +12,8 @@ func init() {
 
 	//读书
 	beego.Router("/read/:key/:id", &controllers.DocumentController{}, "*:Read")
+
+	//编辑
+	beego.Router("/api/:key/edit/?:id", &controllers.DocumentController{}, "*:Edit")
+	beego.Router("/api/:key/content/?:id", &controllers.DocumentController{}, "*:Content")
 }

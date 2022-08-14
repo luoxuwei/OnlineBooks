@@ -11,6 +11,7 @@ func init() {
 		new(Book),
 		new(BookCategory),
 		new(Document),
+		new(DocumentStore),
 		new(Attachment),
 		new(Member),
 		new(Relationship),
@@ -55,6 +56,10 @@ func TNComments(bookid int) string {
 
 func TNScore() string {
 	return "md_score"
+}
+
+func TNDocumentStore() string {
+	return "md_document_store"
 }
 
 //设置增减

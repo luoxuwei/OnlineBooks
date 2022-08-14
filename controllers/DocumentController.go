@@ -1,14 +1,19 @@
 package controllers
 
 import (
+	"OnlineBooks/common"
 	"OnlineBooks/models"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 	"html/template"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type DocumentController struct {
@@ -193,4 +198,165 @@ func (c *DocumentController) Read() {
 
 	//设置模版
 	c.TplName = "document/default_read.html"
+}
+
+//编辑
+func (c *DocumentController) Edit() {
+	docId := 0 // 文档id
+
+	identify := c.Ctx.Input.Param(":key")
+	if identify == "" {
+		c.Abort("404")
+	}
+
+	bookData := models.NewBookData()
+
+	var err error
+	//权限验证
+	if c.Member.IsAdministrator() {
+		book, err := models.NewBook().Select("identify", identify)
+		if err != nil {
+			c.JsonResult(1, "权限错误")
+		}
+		bookData = book.ToBookData()
+	} else {
+		bookData, err = models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+		if err != nil {
+			c.Abort("404")
+		}
+
+		if bookData.RoleId == common.BookGeneral {
+			c.JsonResult(1, "权限错误")
+		}
+	}
+
+	c.TplName = "document/markdown_edit_template.html"
+
+	c.Data["Model"] = bookData
+	r, _ := json.Marshal(bookData)
+
+	c.Data["ModelResult"] = template.JS(string(r))
+
+	c.Data["Result"] = template.JS("[]")
+
+	// 编辑的文档
+	if id := c.GetString(":id"); id != "" {
+		if num, _ := strconv.Atoi(id); num > 0 {
+			docId = num
+		} else { //字符串
+			var doc = models.NewDocument()
+			orm.NewOrm().QueryTable(doc).Filter("identify", id).Filter("book_id", bookData.BookId).One(doc, "document_id")
+			docId = doc.DocumentId
+		}
+	}
+
+	trees, err := models.NewDocument().GetMenu(bookData.BookId, docId, true)
+	if err != nil {
+		logs.Error("GetMenu error : ", err)
+	} else {
+		if len(trees) > 0 {
+			if jsTree, err := json.Marshal(trees); err == nil {
+				c.Data["Result"] = template.JS(string(jsTree))
+			}
+		} else {
+			c.Data["Result"] = template.JS("[]")
+		}
+	}
+	c.Data["BaiDuMapKey"] = beego.AppConfig.DefaultString("baidumapkey", "")
+
+}
+
+//保存文档并返回内容
+func (c *DocumentController) Content() {
+	identify := c.Ctx.Input.Param(":key")
+	docId, err := c.GetInt("doc_id")
+	errMsg := "ok"
+	if err != nil {
+		docId, _ = strconv.Atoi(c.Ctx.Input.Param(":id"))
+	}
+	bookId := 0
+	//权限验证
+	if c.Member.IsAdministrator() {
+		book, err := models.NewBook().Select("identify", identify)
+		if err != nil {
+			c.JsonResult(1, "获取内容错误")
+		}
+		bookId = book.BookId
+	} else {
+		bookData, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+
+		if err != nil || bookData.RoleId == common.BookGeneral {
+			c.JsonResult(1, "权限错误")
+		}
+		bookId = bookData.BookId
+	}
+
+	if docId <= 0 {
+		c.JsonResult(1, "参数错误")
+	}
+
+	documentStore := new(models.DocumentStore)
+
+	if !c.Ctx.Input.IsPost() {
+		doc, err := models.NewDocument().SelectByDocId(docId)
+
+		if err != nil {
+			c.JsonResult(1, "文档不存在")
+		}
+		attach, err := models.NewAttachment().SelectByDocumentId(doc.DocumentId)
+		if err == nil {
+			doc.AttachList = attach
+		}
+
+		doc.Release = "" //Ajax请求，之间用markdown渲染，不用release
+		doc.Markdown = documentStore.SelectField(doc.DocumentId, "markdown")
+		c.JsonResult(0, errMsg, doc)
+	}
+
+	//更新文档内容
+	markdown := strings.TrimSpace(c.GetString("markdown", ""))
+	content := c.GetString("html")
+
+	version, _ := c.GetInt64("version", 0)
+	isCover := c.GetString("cover")
+
+	doc, err := models.NewDocument().SelectByDocId(docId)
+
+	if err != nil {
+		c.JsonResult(1, "读取文档错误")
+	}
+	if doc.BookId != bookId {
+		c.JsonResult(1, "内部错误")
+	}
+	if doc.Version != version && !strings.EqualFold(isCover, "yes") {
+		c.JsonResult(1, "文档将被覆盖")
+	}
+
+	isSummary := false
+	isAuto := false
+
+	if markdown == "" && content != "" {
+		documentStore.Markdown = content
+	} else {
+		documentStore.Markdown = markdown
+	}
+	documentStore.Content = content
+	doc.Version = time.Now().Unix()
+	if docId, err := doc.InsertOrUpdate(); err != nil {
+		c.JsonResult(1, "保存失败")
+	} else {
+		documentStore.DocumentId = int(docId)
+		if err := documentStore.InsertOrUpdate("markdown", "content"); err != nil {
+			logs.Error(err)
+		}
+	}
+
+	if isAuto {
+		errMsg = "auto"
+	} else if isSummary {
+		errMsg = "true"
+	}
+
+	doc.Release = ""
+	c.JsonResult(0, errMsg, doc)
 }

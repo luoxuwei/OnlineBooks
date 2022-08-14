@@ -1,8 +1,10 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
+	"strings"
 	"time"
 )
 
@@ -53,4 +55,44 @@ func (m *Document) GetMenuTop(bookId int) (docs []*Document, err error) {
 func (m *Document) SelectByIdentify(BookId, Identify interface{}) (*Document, error) {
 	err := orm.NewOrm().QueryTable(m.TableName()).Filter("BookId", BookId).Filter("Identify", Identify).One(m)
 	return m, err
+}
+
+//根据文档ID查询指定文档
+func (m *Document) SelectByDocId(id int) (doc *Document, err error) {
+	if id <= 0 {
+		return m, errors.New("Invalid parameter")
+	}
+
+	o := orm.NewOrm()
+	err = o.QueryTable(m.TableName()).Filter("document_id", id).One(m)
+	if err == orm.ErrNoRows {
+		return m, errors.New("数据不存在")
+	}
+
+	return m, nil
+}
+
+//插入和更新文档
+func (m *Document) InsertOrUpdate(cols ...string) (id int64, err error) {
+	o := orm.NewOrm()
+	id = int64(m.DocumentId)
+	m.ModifyTime = time.Now()
+	m.DocumentName = strings.TrimSpace(m.DocumentName)
+	if m.DocumentId > 0 { //文档id存在，则更新
+		_, err = o.Update(m, cols...)
+		return
+	}
+
+	var selectDocument Document
+	//直接查询一个字段
+	o.QueryTable(TNDocuments()).Filter("identify", m.Identify).Filter("book_id", m.BookId).One(&selectDocument, "document_id")
+	if selectDocument.DocumentId == 0 {
+		m.CreateTime = time.Now()
+		id, err = o.Insert(m)
+		NewBook().RefreshDocumentCount(m.BookId)
+	} else { //identify存在，则执行更新
+		_, err = o.Update(m)
+		id = int64(selectDocument.DocumentId)
+	}
+	return
 }

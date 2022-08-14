@@ -3,10 +3,11 @@ package models
 import (
 	"OnlineBooks/utils"
 	"fmt"
+	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/beego/beego/v2/client/orm"
 )
 
 type Book struct {
@@ -107,4 +108,18 @@ func (m *Book) Select(field string, value interface{}, cols ...string) (book *Bo
 		err = o.QueryTable(m.TableName()).Filter(field, value).One(m, cols...)
 	}
 	return m, err
+}
+
+//更新文档数量
+func (m *Book) RefreshDocumentCount(bookId int) {
+	o := orm.NewOrm()
+	docCount, err := o.QueryTable(TNDocuments()).Filter("book_id", bookId).Count()
+	if err == nil {
+		temp := NewBook()
+		temp.BookId = bookId
+		temp.DocCount = int(docCount)
+		o.Update(temp, "doc_count")
+	} else {
+		logs.Error(err)
+	}
 }
