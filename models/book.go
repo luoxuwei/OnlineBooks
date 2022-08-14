@@ -178,3 +178,21 @@ func (m *Book) Update(cols ...string) (err error) {
 	_, err = o.Update(m, cols...)
 	return err
 }
+
+func (m *Book) SearchBook(wd string, page, size int) (books []Book, cnt int, err error) {
+	sqlFmt := "select %v from md_books where book_name like ? or description like ? order by star desc"
+	sql := fmt.Sprintf(sqlFmt, "book_id")
+	sqlCount := fmt.Sprintf(sqlFmt, "count(book_id) cnt")
+
+	wd = "%" + wd + "%"
+
+	o := orm.NewOrm()
+	var count struct{ Cnt int }
+	err = o.Raw(sqlCount, wd, wd).QueryRow(&count)
+	if count.Cnt > 0 {
+		cnt = count.Cnt
+		_, err = o.Raw(sql+" limit ? offset ?", wd, wd, size, (page-1)*size).QueryRows(&books)
+	}
+
+	return
+}
