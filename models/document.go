@@ -96,3 +96,31 @@ func (m *Document) InsertOrUpdate(cols ...string) (id int64, err error) {
 	}
 	return
 }
+
+//删除文档及其子文档
+func (m *Document) Delete(docId int) error {
+
+	o := orm.NewOrm()
+	modelStore := new(DocumentStore)
+
+	if doc, err := m.SelectByDocId(docId); err == nil {
+		o.Delete(doc)
+		modelStore.Delete(docId)
+	}
+
+	var docs []*Document
+
+	_, err := o.QueryTable(m.TableName()).Filter("parent_id", docId).All(&docs)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range docs {
+		docId := item.DocumentId
+		o.QueryTable(m.TableName()).Filter("document_id", docId).Delete()
+		//删除document_store表对应的文档
+		modelStore.Delete(docId)
+		m.Delete(docId)
+	}
+	return nil
+}

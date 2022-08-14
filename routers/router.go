@@ -17,4 +17,6 @@ func init() {
 	beego.Router("/api/:key/edit/?:id", &controllers.DocumentController{}, "*:Edit")
 	beego.Router("/api/:key/content/?:id", &controllers.DocumentController{}, "*:Content")
 	beego.Router("/api/upload", &controllers.DocumentController{}, "post:Upload")
+	beego.Router("/api/:key/create", &controllers.DocumentController{}, "post:Create")
+	beego.Router("/api/:key/delete", &controllers.DocumentController{}, "post:Delete")
 }

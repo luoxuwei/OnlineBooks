@@ -500,3 +500,133 @@ func (c *DocumentController) Upload() {
 	c.Ctx.Output.JSON(result, true, false)
 	c.StopRun()
 }
+
+//删除
+func (c *DocumentController) Delete() {
+
+	identify := c.GetString("identify")
+	docId, _ := c.GetInt("doc_id", 0)
+
+	bookId := 0
+	if c.Member.IsAdministrator() {
+		book, err := models.NewBook().Select("identify", identify)
+		if err != nil {
+			c.JsonResult(1, "权限错误")
+		}
+		bookId = book.BookId
+	} else {
+		bookData, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+		if err != nil || bookData.RoleId == common.BookGeneral {
+			c.JsonResult(1, "权限错误")
+		}
+		bookId = bookData.BookId
+	}
+
+	if docId <= 0 {
+		c.JsonResult(1, "参数错误")
+	}
+
+	doc, err := models.NewDocument().SelectByDocId(docId)
+	if err != nil {
+		c.JsonResult(1, "删除失败")
+	}
+
+	//如果文档所属图书错误
+	if doc.BookId != bookId {
+		c.JsonResult(1, "参数错误")
+	}
+	//删除图书下的文档以及子文档
+	err = doc.Delete(doc.DocumentId)
+	if err != nil {
+		logs.Error(err.Error())
+		c.JsonResult(1, "删除失败")
+	}
+
+	//文档数量统计
+	models.NewBook().RefreshDocumentCount(doc.BookId)
+
+	c.JsonResult(0, "ok")
+}
+
+//创建文档
+func (c *DocumentController) Create() {
+	identify := c.GetString("identify")        //图书标识
+	docIdentify := c.GetString("doc_identify") //新建的文档标识
+	docName := c.GetString("doc_name")
+	parentId, _ := c.GetInt("parent_id", 0)
+	docId, _ := c.GetInt("doc_id", 0)
+	bookIdentify := strings.TrimSpace(c.GetString(":key"))
+	o := orm.NewOrm()
+	if identify == "" {
+		c.JsonResult(1, "参数错误")
+	}
+	if docName == "" {
+		c.JsonResult(1, "文档名为空")
+	}
+	if docIdentify != "" {
+		if bookIdentify == "" {
+			c.JsonResult(1, "图书参数错误")
+		}
+
+		var book models.Book
+		o.QueryTable(models.TNBook()).Filter("Identify", bookIdentify).One(&book, "BookId")
+		if book.BookId == 0 {
+			c.JsonResult(1, "未找到该图书")
+		}
+
+		d, _ := models.NewDocument().SelectByIdentify(book.BookId, docIdentify)
+		if d.DocumentId > 0 && d.DocumentId != docId {
+			c.JsonResult(1, "文档标识重复")
+		}
+	} else {
+		docIdentify = fmt.Sprintf("date-%v", time.Now().Format("2019.11.02.01.01.05"))
+	}
+
+	bookId := 0
+	if c.Member.IsAdministrator() {
+		book, err := models.NewBook().Select("identify", identify)
+		if err != nil {
+			logs.Error(err)
+			c.JsonResult(1, "权限错误")
+		}
+		bookId = book.BookId
+	} else {
+		bookData, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+
+		if err != nil || bookData.RoleId == common.BookGeneral {
+			c.JsonResult(1, "权限错误")
+		}
+		bookId = bookData.BookId
+	}
+
+	if parentId > 0 {
+		doc, err := models.NewDocument().SelectByDocId(parentId)
+		if err != nil || doc.BookId != bookId {
+			c.JsonResult(1, "分类错误")
+		}
+	}
+
+	document, _ := models.NewDocument().SelectByDocId(docId)
+
+	document.MemberId = c.Member.MemberId
+	document.BookId = bookId
+	if docIdentify != "" {
+		document.Identify = docIdentify
+	}
+	document.Version = time.Now().Unix()
+	document.DocumentName = docName
+	document.ParentId = parentId
+
+	documentId, err := document.InsertOrUpdate()
+	if err != nil {
+		c.JsonResult(1, "保存失败")
+	}
+
+	documentStore := models.DocumentStore{DocumentId: int(documentId), Markdown: ""}
+	if documentStore.SelectField(documentId, "markdown") == "" {
+		if err := documentStore.InsertOrUpdate(); err != nil {
+			logs.Error(err)
+		}
+	}
+	c.JsonResult(0, "ok", document)
+}
