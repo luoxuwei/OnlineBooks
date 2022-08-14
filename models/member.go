@@ -121,3 +121,9 @@ func (m *Member) Add() error {
 	m.RoleName = common.Role(m.Role)
 	return nil
 }
+
+//根据用户名获取用户信息
+func (m *Member) GetByUsername(username string) (member Member, err error) {
+	err = orm.NewOrm().QueryTable(TNMembers()).Filter("account", username).One(&member)
+	return
+}

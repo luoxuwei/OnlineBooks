@@ -47,6 +47,12 @@ func init() {
 	beego.Router("/doregist", &controllers.AccountController{}, "post:DoRegist")
 	beego.Router("/logout", &controllers.AccountController{}, "*:Logout")
 
+    //个人中心
+	beego.Router("/user/:username", &controllers.UserController{}, "get:Index")                 //主页
+	beego.Router("/user/:username/collection", &controllers.UserController{}, "get:Collection") //收藏
+	beego.Router("/user/:username/follow", &controllers.UserController{}, "get:Follow")         //关注
+	beego.Router("/user/:username/fans", &controllers.UserController{}, "get:Fans")             //粉丝
+	beego.Router("/follow/:uid", &controllers.BaseController{}, "get:SetFollow")                //关注或取消关注
 	beego.Router("/book/score/:id", &controllers.BookController{}, "*:Score")                   //评分
 	beego.Router("/book/comment/:id", &controllers.BookController{}, "post:Comment")            //评论
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
 	"strconv"
+	"strings"
 )
 
 type CollectionData struct {
@@ -64,4 +65,31 @@ func (m *Collection) Collection(uid, bid int) (cancel bool, err error) {
 	}
 	return
 }
+
+func (m *Collection) List(mid, p, listRows int) (cnt int64, books []CollectionData, err error) {
+	o := orm.NewOrm()
+	filter := o.QueryTable(TNCollection()).Filter("member_id", mid)
+	if cnt, _ = filter.Count(); cnt > 0 {
+		// sql := "select b.*,m.nickname from " + TNBook() + " b left join " + TNCollection() + " s on s.book_id=b.book_id left join " + TNMembers() + " m on m.member_id=b.member_id where s.member_id=? order by id desc limit %v offset %v"
+		// sql = fmt.Sprintf(sql, listRows, (p-1)*listRows)
+		// _, err = o.Raw(sql, mid).QueryRows(&books)
+
+		sql := "select bid from " + TNCollection() + " where member_id=? order by id desc limit %v offset %v"
+		sql = fmt.Sprintf(sql, listRows, (p-1)*listRows)
+		var stars []Collection
+		_, err = o.Raw(sql, mid).QueryRows(&stars)
+		if nil == err {
+			bids := []string{}
+			for _, v := range stars {
+				bids = append(bids, strconv.Itoa(v.BookId))
+			}
+			bidstr := strings.Join(bids, ",")
+
+			sql = "select b.*,m.nickname from md_books b left join md_members m on m.member_id=b.member_id where b.book_id in (" + bidstr + ")"
+			_, err = orm.NewOrm().Raw(sql).QueryRows(&books)
+		}
+	}
+	return
+}
+
 
