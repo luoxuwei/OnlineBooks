@@ -248,3 +248,31 @@ func (c *BookController) UploadCover() {
 	}
 	c.JsonResult(0, "ok", url)
 }
+
+//收藏
+func (c *BookController) Collection() {
+	uid := c.BaseController.Member.MemberId
+	if uid <= 0 {
+		c.JsonResult(1, "收藏失败，请先登录")
+	}
+
+	id, _ := c.GetInt(":id")
+	if id <= 0 {
+		c.JsonResult(1, "收藏失败，图书不存在")
+	}
+
+	cancel, err := new(models.Collection).Collection(uid, id)
+	data := map[string]bool{"IsCancel": cancel}
+	if err != nil {
+		logs.Error(err.Error())
+		if cancel {
+			c.JsonResult(1, "取消收藏失败", data)
+		}
+		c.JsonResult(1, "添加收藏失败", data)
+	}
+
+	if cancel {
+		c.JsonResult(0, "取消收藏成功", data)
+	}
+	c.JsonResult(0, "添加收藏成功", data)
+}

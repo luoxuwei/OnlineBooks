@@ -15,7 +15,8 @@ func init() {
 		new(Attachment),
 		new(Member),
 		new(Relationship),
-		new(Score),)
+		new(Score),
+		new(Collection),)
 }
 
 /*
@@ -60,6 +61,10 @@ func TNScore() string {
 
 func TNDocumentStore() string {
 	return "md_document_store"
+}
+
+func TNCollection() string {
+	return "md_star"
 }
 
 //设置增减
