@@ -166,3 +166,15 @@ func (m *Book) Insert() (err error) {
 	}
 	return err
 }
+
+//Update
+func (m *Book) Update(cols ...string) (err error) {
+	bk := NewBook()
+	bk.BookId = m.BookId
+	o := orm.NewOrm()
+	if err = o.Read(bk); err != nil {
+		return err
+	}
+	_, err = o.Update(m, cols...)
+	return err
+}

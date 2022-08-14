@@ -24,4 +24,5 @@ func init() {
 	beego.Router("/book", &controllers.BookController{}, "*:Index") //我的图书
 	beego.Router("/book/create", &controllers.BookController{}, "post:Create") //创建图书
 	beego.Router("/book/:key/setting", &controllers.BookController{}, "*:Setting") //图书设置
+	beego.Router("/book/setting/upload", &controllers.BookController{}, "post:UploadCover") //图书封面
 }

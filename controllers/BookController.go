@@ -4,12 +4,18 @@ import (
 	"OnlineBooks/common"
 	"OnlineBooks/models"
 	"OnlineBooks/utils"
+	"OnlineBooks/utils/graphics"
+	"OnlineBooks/utils/store"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 	"html/template"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -142,4 +148,103 @@ func (c *BookController) Setting() {
 	c.Data["Cates"], _ = new(models.Category).GetCates(-1, 1)
 	c.Data["Model"] = book
 	c.TplName = "book/setting.html"
+}
+
+func (c *BookController) isPermission() (*models.BookData, error) {
+
+	identify := c.GetString("identify")
+
+	book, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+	if err != nil {
+		return book, err
+	}
+
+	if book.RoleId != common.BookAdmin && book.RoleId != common.BookFounder {
+		return book, errors.New("权限不足")
+	}
+	return book, nil
+}
+
+//上传封面.
+func (c *BookController) UploadCover() {
+	bookResult, err := c.isPermission()
+	if err != nil {
+		c.JsonResult(1, err.Error())
+	}
+
+	book, err := models.NewBook().Select("book_id", bookResult.BookId)
+	if err != nil {
+		c.JsonResult(1, err.Error())
+	}
+
+	file, moreFile, err := c.GetFile("image-file")
+	if err != nil {
+		logs.Error("", err.Error())
+		c.JsonResult(1, "读取文件异常")
+	}
+
+	defer file.Close()
+
+	ext := filepath.Ext(moreFile.Filename)
+
+	if !strings.EqualFold(ext, ".png") && !strings.EqualFold(ext, ".jpg") && !strings.EqualFold(ext, ".gif") && !strings.EqualFold(ext, ".jpeg") {
+		c.JsonResult(1, "不支持图片格式")
+	}
+
+	x1, _ := strconv.ParseFloat(c.GetString("x"), 10)
+	y1, _ := strconv.ParseFloat(c.GetString("y"), 10)
+	w1, _ := strconv.ParseFloat(c.GetString("width"), 10)
+	h1, _ := strconv.ParseFloat(c.GetString("height"), 10)
+
+	x := int(x1)
+	y := int(y1)
+	width := int(w1)
+	height := int(h1)
+
+	fileName := strconv.FormatInt(time.Now().UnixNano(), 16)
+
+	filePath := filepath.Join("uploads", time.Now().Format("200601"), fileName+ext)
+
+	path := filepath.Dir(filePath)
+
+	os.MkdirAll(path, os.ModePerm)
+
+	err = c.SaveToFile("image-file", filePath)
+
+	if err != nil {
+		logs.Error("", err)
+		c.JsonResult(1, "保存图片失败")
+	}
+
+	//剪切图片
+	subImg, err := graphics.ImageCopyFromFile(filePath, x, y, width, height)
+	if err != nil {
+		c.JsonResult(1, "图片剪切")
+	}
+
+	filePath = filepath.Join(common.WorkingDirectory, "uploads", time.Now().Format("200601"), fileName+ext)
+
+	//生成缩略图
+	err = graphics.ImageResizeSaveFile(subImg, 175, 230, filePath)
+	if err != nil {
+		c.JsonResult(1, "保存图片失败")
+	}
+
+	url := "/" + strings.Replace(strings.TrimPrefix(filePath, common.WorkingDirectory), "\\", "/", -1)
+	if strings.HasPrefix(url, "//") {
+		url = string(url[1:])
+	}
+	book.Cover = url
+
+	if err := book.Update(); err != nil {
+		c.JsonResult(1, "保存图片失败")
+	}
+
+	save := book.Cover
+	if err := store.SaveToLocal("."+url, save); err != nil {
+		logs.Error(err.Error())
+	} else {
+		url = book.Cover
+	}
+	c.JsonResult(0, "ok", url)
 }
