@@ -32,4 +32,7 @@ func init() {
 
 	//管理后台
 	beego.Router("/manager/category", &controllers.ManagerController{}, "post,get:Category")
+	beego.Router("/manager/update-cate", &controllers.ManagerController{}, "get:UpdateCate")
+	beego.Router("/manager/del-cate", &controllers.ManagerController{}, "get:DelCate")
+	beego.Router("/manager/icon-cate", &controllers.ManagerController{}, "post:UpdateCateIcon")
 }
