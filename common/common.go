@@ -14,6 +14,9 @@ const RollPage = 4
 // session
 const SessionName = "__mbook_session__"
 
+//正则表达式
+const RegexpEmail = `^(\w)+(\.\w+)*@(\w)+((\.\w+)+)$`
+
 // 用户权限
 const (
 	// 超级管理员.
@@ -96,6 +99,11 @@ func getFileExt() []string {
 
 func DefaultCover() string {
 	return beego.AppConfig.DefaultString("cover", "/static/images/book.jpg")
+}
+
+//默认头像
+func DefaultAvatar() string {
+	return beego.AppConfig.DefaultString("avatar", "/static/images/headimgurl.jpg")
 }
 
 // app_key

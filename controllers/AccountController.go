@@ -6,7 +6,10 @@ import (
 	"OnlineBooks/utils"
 	"errors"
 	"fmt"
+	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -73,4 +76,83 @@ func (c *AccountController) login(memberId int) (err error) {
 		c.SetSecureCookie(common.AppKey(), "login", v, 24*3600*365)
 	}
 	return err
+}
+
+//注册页面
+func (c *AccountController) Regist() {
+	var (
+		nickname  string      //昵称
+		avatar    string      //头像的http链接地址
+		email     string      //邮箱地址
+		username  string      //用户名
+		id        interface{} //用户id
+		captchaOn bool        //是否开启了验证码
+	)
+
+	//如果开启了验证码
+	if v, ok := c.Option["ENABLED_CAPTCHA"]; ok && strings.EqualFold(v, "true") {
+		captchaOn = true
+		c.Data["CaptchaOn"] = captchaOn
+	}
+
+	c.Data["Nickname"] = nickname
+	c.Data["Avatar"] = avatar
+	c.Data["Email"] = email
+	c.Data["Username"] = username
+	c.Data["Id"] = id
+	c.Data["RandomStr"] = time.Now().Unix()
+	c.SetSession("auth", fmt.Sprintf("%v-%v", "email", id)) //存储标识，以标记是哪个用户，在完善用户信息的时候跟传递过来的auth和id进行校验
+	c.TplName = "account/bind.html"
+
+}
+
+//执行注册
+func (c *AccountController) DoRegist() {
+	var err error
+	account := c.GetString("account")
+	nickname := strings.TrimSpace(c.GetString("nickname"))
+	password1 := c.GetString("password1")
+	password2 := c.GetString("password2")
+	email := c.GetString("email")
+
+	member := models.NewMember()
+
+	if password1 != password2 {
+		c.JsonResult(1, "登录密码与确认密码不一致")
+	}
+
+	if l := strings.Count(password1, ""); password1 == "" || l > 20 || l < 6 {
+		c.JsonResult(1, "密码必须在6-20个字符之间")
+	}
+
+	if ok, err := regexp.MatchString(common.RegexpEmail, email); !ok || err != nil || email == "" {
+		c.JsonResult(1, "邮箱格式错误")
+	}
+	if l := strings.Count(nickname, "") - 1; l < 2 || l > 20 {
+		c.JsonResult(1, "用户昵称限制在2-20个字符")
+	}
+
+	member.Account = account
+	member.Nickname = nickname
+	member.Password = password1
+	if account == "admin" || account == "administrator" {
+		member.Role = common.MemberSuperRole
+	} else {
+		member.Role = common.MemberGeneralRole
+	}
+	member.Avatar = common.DefaultAvatar()
+	member.CreateAt = 0
+	member.Email = email
+	member.Status = 0
+	if err := member.Add(); err != nil {
+		logs.Error(err)
+		c.JsonResult(1, err.Error())
+	}
+
+	if err = c.login(member.MemberId); err != nil {
+		logs.Error(err.Error())
+		c.JsonResult(1, err.Error())
+	}
+
+	c.JsonResult(0, "注册成功")
 }

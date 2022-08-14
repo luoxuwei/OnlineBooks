@@ -5,6 +5,8 @@ import (
 	"OnlineBooks/utils"
 	"errors"
 	"github.com/beego/beego/v2/client/orm"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -75,4 +77,47 @@ func (m *Member) Login(account string, password string) (*Member, error) {
 	}
 
 	return member, errors.New("密码错误")
+}
+
+// 添加用
+func (m *Member) Add() error {
+	if m.Email == "" {
+		return errors.New("请填写邮箱")
+	}
+	if ok, err := regexp.MatchString(common.RegexpEmail, m.Email); !ok || err != nil || m.Email == "" {
+		return errors.New("邮箱格式错误")
+	}
+	if l := strings.Count(m.Password, ""); l < 6 || l >= 20 {
+		return errors.New("密码请输入6-20个字符")
+	}
+
+	cond := orm.NewCondition().Or("email", m.Email).Or("nickname", m.Nickname).Or("account", m.Account)
+	var one Member
+	o := orm.NewOrm()
+	if o.QueryTable(m.TableName()).SetCond(cond).One(&one, "member_id", "nickname", "account", "email"); one.MemberId > 0 {
+		if one.Nickname == m.Nickname {
+			return errors.New("昵称已存在")
+		}
+		if one.Email == m.Email {
+			return errors.New("邮箱已存在")
+		}
+		if one.Account == m.Account {
+			return errors.New("用户已存在")
+		}
+	}
+
+	hash, err := utils.PasswordHash(m.Password)
+
+	if err != nil {
+		return err
+	}
+
+	m.Password = hash
+	_, err = o.Insert(m)
+
+	if err != nil {
+		return err
+	}
+	m.RoleName = common.Role(m.Role)
+	return nil
 }
