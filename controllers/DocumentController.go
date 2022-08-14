@@ -630,3 +630,25 @@ func (c *DocumentController) Create() {
 	}
 	c.JsonResult(0, "ok", document)
 }
+
+//阅读页内搜索
+func (c *DocumentController) Search() {
+	identify := c.Ctx.Input.Param(":key")
+	token := c.GetString("token")
+	keyword := strings.TrimSpace(c.GetString("keyword"))
+
+	if identify == "" {
+		c.JsonResult(1, "参数错误")
+	}
+	if !c.EnableAnonymous && c.Member == nil {
+		c.Redirect(beego.URLFor("AccountController.Login"), 302)
+		return
+	}
+	bookData := c.getBookData(identify, token)
+	docs, _, err := models.NewDocumentSearch().SearchDocument(keyword, bookData.BookId, 1, 10000)
+	if err != nil {
+		logs.Error(err)
+		c.JsonResult(1, "搜索结果错误")
+	}
+	c.JsonResult(0, keyword, docs)
+}

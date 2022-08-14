@@ -196,3 +196,32 @@ func (m *Book) SearchBook(wd string, page, size int) (books []Book, cnt int, err
 
 	return
 }
+
+func (m *Book) GetBooksByIds(ids []int, fields ...string) (books []Book, err error) {
+	if len(ids) == 0 {
+		return
+	}
+
+	var bs []Book
+	var idArr []interface{}
+
+	for _, i := range ids {
+		idArr = append(idArr, i)
+	}
+
+	rows, err := orm.NewOrm().QueryTable(TNBook()).Filter("book_id__in", idArr).All(&bs, fields...)
+	if rows > 0 {
+		//这里的两次循环是为了保证返回的books中的顺序与传入的ids的顺序一致。
+		bookMap := make(map[interface{}]Book)
+		for _, book := range bs {
+			bookMap[book.BookId] = book
+		}
+		for _, i := range ids {
+			if book, ok := bookMap[i]; ok {
+				books = append(books, book)
+			}
+		}
+	}
+
+	return
+}

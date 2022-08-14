@@ -12,6 +12,11 @@ func init() {
 
 	//读书
 	beego.Router("/read/:key/:id", &controllers.DocumentController{}, "*:Read")
+	beego.Router("/read/:key/search", &controllers.DocumentController{}, "post:Search")
+
+	//搜索
+	beego.Router("/search", &controllers.SearchController{}, "get:Search")
+	beego.Router("/search/result", &controllers.SearchController{}, "get:Result")
 
 	//编辑
 	beego.Router("/api/:key/edit/?:id", &controllers.DocumentController{}, "*:Edit")
