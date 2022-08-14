@@ -92,4 +92,14 @@ func (m *Collection) List(mid, p, listRows int) (cnt int64, books []CollectionDa
 	return
 }
 
-
+//是否收藏了文档
+func (m *Collection) DoesCollection(uid, bid interface{}) bool {
+	var star Collection
+	star.MemberId, _ = strconv.Atoi(fmt.Sprintf("%v", uid))
+	star.BookId, _ = strconv.Atoi(fmt.Sprintf("%v", bid))
+	orm.NewOrm().Read(&star, "MemberId", "BookId")
+	if star.Id > 0 {
+		return true
+	}
+	return false
+}

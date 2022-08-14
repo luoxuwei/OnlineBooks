@@ -19,9 +19,9 @@ type Comments struct {
 	TimeCreate time.Time //评论时间
 }
 
-// func (m *Comments) TableName() string {
-// 	return TNComments()
-// }
+func (m *Comments) TableName() string {
+	return TNComments()
+}
 
 //评论内容
 type BookCommentsResult struct {
@@ -42,7 +42,7 @@ func (m *Comments) BookComments(page, size, bookId int) (comments []BookComments
 
 	o := orm.NewOrm()
 
-	sql := `select book_id,uid,content,time_create from ` + TNComments(bookId) + ` where book_id=? limit %v offset %v`
+	sql := `select book_id,uid,content,time_create from ` + TNComments() + ` where book_id=? limit %v offset %v`
 	sql = fmt.Sprintf(sql, size, (page-1)*size)
 	_, err = o.Raw(sql, bookId).QueryRows(&comments)
 	if nil != err {
@@ -105,7 +105,7 @@ func (m *Comments) AddComments(uid, bookId int, content string) (err error) {
 	var comment Comments
 	//1.限制评论频率
 	second := 10
-	sql := `select id from ` + TNComments(bookId) + ` where uid=? and time_create>? order by id desc`
+	sql := `select id from ` + TNComments() + ` where uid=? and time_create>? order by id desc`
 
 	o := orm.NewOrm()
 	o.Raw(sql, uid, time.Now().Add(-time.Duration(second)*time.Second)).QueryRow(&comment)
@@ -114,7 +114,7 @@ func (m *Comments) AddComments(uid, bookId int, content string) (err error) {
 	}
 	fmt.Println(comment)
 	//2.插入评论数据
-	sql = `insert into ` + TNComments(bookId) + `(uid,book_id,content,time_create) values(?,?,?,?)`
+	sql = `insert into ` + TNComments() + `(uid,book_id,content,time_create) values(?,?,?,?)`
 	_, err = o.Raw(sql, uid, bookId, content, time.Now()).Exec()
 	if err != nil {
 		logs.Error(err.Error())

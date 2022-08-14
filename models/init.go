@@ -16,7 +16,9 @@ func init() {
 		new(Member),
 		new(Relationship),
 		new(Score),
-		new(Collection),)
+		new(Collection),
+		new(Fans),
+		new(Comments),)
 }
 
 /*
@@ -51,8 +53,8 @@ func TNAttachment() string {
 	return "md_attachment"
 }
 
-func TNComments(bookid int) string {
-	return fmt.Sprintf("md_comments_%04d", bookid%2)
+func TNComments() string {
+	return "md_comments"
 }
 
 func TNScore() string {
