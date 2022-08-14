@@ -8,4 +8,5 @@ import (
 func init() {
     beego.Router("/", &controllers.HomeController{}, "get:Index")
 	beego.Router("/explore", &controllers.ExploreController{}, "get:Index")
+	beego.Router("/books/:key", &controllers.DocumentController{}, "*:Index")
 }

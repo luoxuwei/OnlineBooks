@@ -2,6 +2,7 @@ package initialize
 
 import (
 	"OnlineBooks/common"
+	"OnlineBooks/utils"
 	beego "github.com/beego/beego/v2/server/web"
 	"path/filepath"
 	"strings"
@@ -38,4 +39,6 @@ func registerFunctions() {
 		}
 		return cdn + p
 	})
+
+	beego.AddFuncMap("showImg", utils.ShowImg)
 }

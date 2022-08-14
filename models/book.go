@@ -1,6 +1,7 @@
 package models
 
 import (
+	"OnlineBooks/utils"
 	"fmt"
 	"strconv"
 	"strings"
@@ -65,4 +66,45 @@ func (m *Book) HomeData(pageIndex, pageSize int, cid int, fields ...string) (boo
 	_, err = o.Raw(sql).QueryRows(&books)
 
 	return
+}
+
+func (book *Book) ToBookData() (m *BookData) {
+	m = &BookData{}
+	m.BookId = book.BookId
+	m.BookName = book.BookName
+	m.Identify = book.Identify
+	m.OrderIndex = book.OrderIndex
+	m.Description = strings.Replace(book.Description, "\r\n", "<br/>", -1)
+	m.PrivatelyOwned = book.PrivatelyOwned
+	m.PrivateToken = book.PrivateToken
+	m.DocCount = book.DocCount
+	m.CommentCount = book.CommentCount
+	m.CreateTime = book.CreateTime
+	m.ModifyTime = book.ModifyTime
+	m.Cover = book.Cover
+	m.MemberId = book.MemberId
+	m.Status = book.Status
+	m.Editor = book.Editor
+	m.Vcnt = book.Vcnt
+	m.Collection = book.Collection
+	m.Score = book.Score
+	m.ScoreFloat = utils.ScoreFloat(book.Score)
+	m.CntScore = book.CntScore
+	m.CntComment = book.CntComment
+	m.Author = book.Author
+	m.AuthorURL = book.AuthorURL
+	if book.Editor == "" {
+		m.Editor = "markdown"
+	}
+	return m
+}
+
+func (m *Book) Select(field string, value interface{}, cols ...string) (book *Book, err error) {
+	o := orm.NewOrm()
+	if len(cols) == 0 {
+		err = o.QueryTable(m.TableName()).Filter(field, value).One(m)
+	} else {
+		err = o.QueryTable(m.TableName()).Filter(field, value).One(m, cols...)
+	}
+	return m, err
 }
