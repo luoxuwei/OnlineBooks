@@ -40,4 +40,7 @@ func init() {
 	beego.Router("/manager/update-cate", &controllers.ManagerController{}, "get:UpdateCate")
 	beego.Router("/manager/del-cate", &controllers.ManagerController{}, "get:DelCate")
 	beego.Router("/manager/icon-cate", &controllers.ManagerController{}, "post:UpdateCateIcon")
+
+	//login
+	beego.Router("/login", &controllers.AccountController{}, "*:Login")
 }

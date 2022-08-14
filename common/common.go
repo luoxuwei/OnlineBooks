@@ -11,6 +11,9 @@ const WorkingDirectory = "./"
 const PageSize = 20
 const RollPage = 4
 
+// session
+const SessionName = "__mbook_session__"
+
 // 用户权限
 const (
 	// 超级管理员.
@@ -93,4 +96,9 @@ func getFileExt() []string {
 
 func DefaultCover() string {
 	return beego.AppConfig.DefaultString("cover", "/static/images/book.jpg")
+}
+
+// app_key
+func AppKey() string {
+	return beego.AppConfig.DefaultString("app_key", "godoc")
 }

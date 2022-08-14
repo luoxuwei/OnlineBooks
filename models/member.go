@@ -2,6 +2,8 @@ package models
 
 import (
 	"OnlineBooks/common"
+	"OnlineBooks/utils"
+	"errors"
 	"github.com/beego/beego/v2/client/orm"
 	"time"
 )
@@ -45,4 +47,32 @@ func (m *Member) IsAdministrator() bool {
 		return false
 	}
 	return m.Role == 0 || m.Role == 1
+}
+
+func (m *Member) Update(cols ...string) error {
+	if m.Email == "" {
+		return errors.New("邮箱不能为空")
+	}
+	if _, err := orm.NewOrm().Update(m, cols...); err != nil {
+		return err
+	}
+	return nil
+}
+
+//登录
+func (m *Member) Login(account string, password string) (*Member, error) {
+	member := &Member{}
+	err := orm.NewOrm().QueryTable(m.TableName()).Filter("account", account).Filter("status", 0).One(member)
+
+	if err != nil {
+		return member, errors.New("用户不存在")
+	}
+
+	ok, err := utils.PasswordVerify(member.Password, password)
+	if ok && err == nil {
+		m.RoleName = common.Role(m.Role)
+		return member, nil
+	}
+
+	return member, errors.New("密码错误")
 }
