@@ -43,3 +43,14 @@ func (c *BaseController) JsonResult(errCode int, errMsg string, data ...interfac
 	}
 	c.StopRun()
 }
+
+func (c *BaseController) BaseUrl() string {
+	host, _ := beego.AppConfig.String("sitemap_host")
+	if len(host) > 0 {
+		if strings.HasPrefix(host, "http://") || strings.HasPrefix(host, "https://") {
+			return host
+		}
+		return c.Ctx.Input.Scheme() + "://" + host
+	}
+	return c.Ctx.Input.Scheme() + "://" + c.Ctx.Request.Host
+}
