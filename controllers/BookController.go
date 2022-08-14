@@ -276,3 +276,49 @@ func (c *BookController) Collection() {
 	}
 	c.JsonResult(0, "添加收藏成功", data)
 }
+
+//保存图书信息
+func (c *BookController) SaveBook() {
+
+	bookResult, err := c.isPermission()
+	if err != nil {
+		c.JsonResult(1, err.Error())
+	}
+
+	book, err := models.NewBook().Select("book_id", bookResult.BookId)
+	if err != nil {
+		logs.Error("SaveBook => ", err)
+		c.JsonResult(1, err.Error())
+	}
+
+	bookName := strings.TrimSpace(c.GetString("book_name"))
+	description := strings.TrimSpace(c.GetString("description", ""))
+	editor := strings.TrimSpace(c.GetString("editor"))
+
+	if strings.Count(description, "") > 500 {
+		c.JsonResult(1, "描述需小于500字")
+	}
+
+	if editor != "markdown" && editor != "html" {
+		editor = "markdown"
+	}
+
+	book.BookName = bookName
+	book.Description = description
+	book.Editor = editor
+	book.Author = c.GetString("author")
+	book.AuthorURL = c.GetString("author_url")
+
+	if err := book.Update(); err != nil {
+		c.JsonResult(1, "保存失败")
+	}
+	bookResult.BookName = bookName
+	bookResult.Description = description
+
+	//Update分类
+	if cids, ok := c.Ctx.Request.Form["cid"]; ok {
+		new(models.BookCategory).SetBookCates(book.BookId, cids)
+	}
+
+	c.JsonResult(0, "ok", bookResult)
+}
