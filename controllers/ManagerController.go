@@ -16,6 +16,13 @@ type ManagerController struct {
 	BaseController
 }
 
+func (c *ManagerController) Prepare() {
+	c.BaseController.Prepare()
+	if !c.Member.IsAdministrator() {
+		c.Abort("404")
+	}
+}
+
 //分类管理
 func (c *ManagerController) Category() {
 	cate := new(models.Category)
