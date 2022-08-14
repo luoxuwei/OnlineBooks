@@ -3,7 +3,6 @@ package initialize
 
 import (
 	beego "github.com/beego/beego/v2/server/web"
-	"github.com/beego/beego/v2"
 	"github.com/beego/beego/v2/client/orm"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -54,6 +53,6 @@ func registDatabase(alias string) {
 	dbHost, _ := beego.AppConfig.String("db_" + alias + "_host")
 	dbPort, _ := beego.AppConfig.String("db_" + alias + "_port")
 
-	orm.RegisterDataBase(dbAlias, "mysql", dbUser+":"+dbPwd+"@tcp("+dbHost+":"+dbPort+")/"+dbName+"?charset=utf8mb4", 30)
+	orm.RegisterDataBase(dbAlias, "mysql", dbUser+":"+dbPwd+"@tcp("+dbHost+":"+dbPort+")/"+dbName+"?charset=utf8mb4", orm.MaxOpenConnections(30))
 
 }
