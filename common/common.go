@@ -7,6 +7,10 @@ import (
 
 const WorkingDirectory = "./"
 
+// 默认PageSize
+const PageSize = 20
+const RollPage = 4
+
 // 用户权限
 const (
 	// 超级管理员.

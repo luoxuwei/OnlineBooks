@@ -123,3 +123,27 @@ func (m *Book) RefreshDocumentCount(bookId int) {
 		logs.Error(err)
 	}
 }
+
+func (m *Book) SelectPage(pageIndex, pageSize, memberId int, PrivatelyOwned int) (books []*BookData, totalCount int, err error) {
+	o := orm.NewOrm()
+	sql1 := "select count(b.book_id) as total_count from " + TNBook() + " as b left join " +
+		TNRelationship() + " as r on b.book_id=r.book_id and r.member_id = ? where r.relationship_id > 0  and b.privately_owned=" + strconv.Itoa(PrivatelyOwned)
+
+	err = o.Raw(sql1, memberId).QueryRow(&totalCount)
+	if err != nil {
+		return
+	}
+	offset := (pageIndex - 1) * pageSize
+	sql2 := "select book.*,rel.member_id,rel.role_id,m.account as create_name from " + TNBook() + " as book" +
+		" left join " + TNRelationship() + " as rel on book.book_id=rel.book_id and rel.member_id = ?" +
+		" left join " + TNRelationship() + " as rel1 on book.book_id=rel1.book_id  and rel1.role_id=0" +
+		" left join " + TNMembers() + " as m on rel1.member_id=m.member_id " +
+		" where rel.relationship_id > 0 %v order by book.book_id desc limit " + fmt.Sprintf("%d,%d", offset, pageSize)
+	sql2 = fmt.Sprintf(sql2, " and book.privately_owned="+strconv.Itoa(PrivatelyOwned))
+
+	_, err = o.Raw(sql2, memberId).QueryRows(&books)
+	if err != nil {
+		return
+	}
+	return
+}

@@ -19,4 +19,7 @@ func init() {
 	beego.Router("/api/upload", &controllers.DocumentController{}, "post:Upload")
 	beego.Router("/api/:key/create", &controllers.DocumentController{}, "post:Create")
 	beego.Router("/api/:key/delete", &controllers.DocumentController{}, "post:Delete")
+
+	//图书管理
+	beego.Router("/book", &controllers.BookController{}, "*:Index")                         //我的图书
 }
