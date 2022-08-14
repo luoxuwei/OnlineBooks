@@ -48,3 +48,9 @@ func (m *Document) GetMenuTop(bookId int) (docs []*Document, err error) {
 	}
 	return
 }
+
+//根据指定字段查询一条文档
+func (m *Document) SelectByIdentify(BookId, Identify interface{}) (*Document, error) {
+	err := orm.NewOrm().QueryTable(m.TableName()).Filter("BookId", BookId).Filter("Identify", Identify).One(m)
+	return m, err
+}

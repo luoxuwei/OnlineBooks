@@ -9,4 +9,7 @@ func init() {
     beego.Router("/", &controllers.HomeController{}, "get:Index")
 	beego.Router("/explore", &controllers.ExploreController{}, "get:Index")
 	beego.Router("/books/:key", &controllers.DocumentController{}, "*:Index")
+
+	//读书
+	beego.Router("/read/:key/:id", &controllers.DocumentController{}, "*:Read")
 }
