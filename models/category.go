@@ -31,3 +31,10 @@ func (m *Category) GetCates(pid int, status int) (cates []Category, err error) {
 	_, err = qs.OrderBy("-status", "sort", "title").All(&cates)
 	return
 }
+
+//查询分类
+func (m *Category) Find(id int) (cate Category) {
+	cate.Id = id
+	orm.NewOrm().Read(&cate)
+	return cate
+}
