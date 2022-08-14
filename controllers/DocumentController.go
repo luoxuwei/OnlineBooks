@@ -3,6 +3,7 @@ package controllers
 import (
 	"OnlineBooks/common"
 	"OnlineBooks/models"
+	"OnlineBooks/utils/store"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,9 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
 	"html/template"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -359,4 +363,140 @@ func (c *DocumentController) Content() {
 
 	doc.Release = ""
 	c.JsonResult(0, errMsg, doc)
+}
+
+
+//上传附件
+func (c *DocumentController) Upload() {
+	identify := c.GetString("identify")
+	docId, _ := c.GetInt("doc_id")
+	isAttach := true
+
+	if identify == "" {
+		c.JsonResult(1, "参数错误")
+	}
+	name := "editormd-file-file"
+	file, moreFile, err := c.GetFile(name)
+	if err == http.ErrMissingFile {
+		name = "editormd-image-file"
+		file, moreFile, err = c.GetFile(name)
+		if err == http.ErrMissingFile {
+			c.JsonResult(1, "文件错误")
+		}
+	}
+	if err != nil {
+		c.JsonResult(1, err.Error())
+	}
+
+	defer file.Close()
+
+	ext := filepath.Ext(moreFile.Filename)
+	if ext == "" {
+		c.JsonResult(1, "文件格式错误")
+	}
+
+	if !common.IsAllowedFileExt(ext) {
+		c.JsonResult(1, "文件类型错误")
+	}
+
+	bookId := 0
+	//如果是超级管理员，则不判断权限
+	if c.Member.IsAdministrator() {
+		book, err := models.NewBook().Select("identify", identify)
+		if err != nil {
+			c.JsonResult(1, "文档不存在或权限不足")
+		}
+		bookId = book.BookId
+	} else {
+		book, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+		if err != nil {
+			if err == orm.ErrNoRows {
+				c.JsonResult(1, "权限错误")
+			}
+			c.JsonResult(6001, err.Error())
+		}
+		//没有编辑权限
+		if book.RoleId != common.BookEditor && book.RoleId != common.BookAdmin && book.RoleId != common.BookFounder {
+			c.JsonResult(1, "权限错误")
+		}
+		bookId = book.BookId
+	}
+
+	if docId > 0 {
+		doc, err := models.NewDocument().SelectByDocId(docId)
+		if err != nil {
+			c.JsonResult(1, "获取文档错误")
+		}
+		if doc.BookId != bookId {
+			c.JsonResult(1, "获取文档错误")
+		}
+	}
+
+	fileName := strconv.FormatInt(time.Now().UnixNano(), 16)
+	filePath := filepath.Join(common.WorkingDirectory, "uploads", time.Now().Format("200601"), fileName+ext)
+	path := filepath.Dir(filePath)
+
+	os.MkdirAll(path, os.ModePerm)
+
+	err = c.SaveToFile(name, filePath)
+
+	if err != nil {
+		c.JsonResult(1, "保存文件失败")
+	}
+	attachment := models.NewAttachment()
+	attachment.BookId = bookId
+	attachment.Name = moreFile.Filename
+	attachment.CreateAt = c.Member.MemberId
+	attachment.Ext = ext
+	attachment.Path = strings.TrimPrefix(filePath, common.WorkingDirectory)
+	attachment.DocumentId = docId
+
+	if fileInfo, err := os.Stat(filePath); err == nil {
+		attachment.Size = float64(fileInfo.Size())
+	}
+	if docId > 0 {
+		attachment.DocumentId = docId
+	}
+
+	if strings.EqualFold(ext, ".jpg") || strings.EqualFold(ext, ".jpeg") || strings.EqualFold(ext, ".png") || strings.EqualFold(ext, ".gif") {
+
+		attachment.HttpPath = "/" + strings.Replace(strings.TrimPrefix(filePath, common.WorkingDirectory), "\\", "/", -1)
+		if strings.HasPrefix(attachment.HttpPath, "//") {
+			attachment.HttpPath = string(attachment.HttpPath[1:])
+		}
+		isAttach = false
+	}
+
+	err = attachment.Insert()
+
+	if err != nil {
+		os.Remove(filePath)
+		c.JsonResult(1, "文件保存失败")
+	}
+	if attachment.HttpPath == "" {
+		attachment.HttpPath = beego.URLFor("DocumentController.DownloadAttachment", ":key", identify, ":attach_id", attachment.AttachmentId)
+
+		if err := attachment.Update(); err != nil {
+			c.JsonResult(1, "保存文件失败")
+		}
+	}
+	osspath := fmt.Sprintf("projects/%v/%v", identify, fileName+filepath.Ext(attachment.HttpPath))
+
+	osspath = "uploads/" + osspath
+	if err := store.SaveToLocal("."+attachment.HttpPath, osspath); err != nil {
+		logs.Error(err.Error())
+	}
+	attachment.HttpPath = "/" + osspath
+
+	result := map[string]interface{}{
+		"errcode":   0,
+		"success":   1,
+		"message":   "ok",
+		"url":       attachment.HttpPath,
+		"alt":       attachment.Name,
+		"is_attach": isAttach,
+		"attach":    attachment,
+	}
+	c.Ctx.Output.JSON(result, true, false)
+	c.StopRun()
 }

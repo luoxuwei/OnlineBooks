@@ -16,4 +16,5 @@ func init() {
 	//编辑
 	beego.Router("/api/:key/edit/?:id", &controllers.DocumentController{}, "*:Edit")
 	beego.Router("/api/:key/content/?:id", &controllers.DocumentController{}, "*:Content")
+	beego.Router("/api/upload", &controllers.DocumentController{}, "post:Upload")
 }
