@@ -1,9 +1,12 @@
 package models
 
 import (
+	"OnlineBooks/utils"
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 	"strings"
 	"time"
 )
@@ -123,4 +126,47 @@ func (m *Document) Delete(docId int) error {
 		m.Delete(docId)
 	}
 	return nil
+}
+
+//发布文档内容
+func (m *Document) ReleaseContent(bookId int, baseUrl string) {
+	// 防止多处重复发布 ,Lock
+	utils.BooksRelease.Set(bookId)
+	defer utils.BooksRelease.Delete(bookId)
+
+	o := orm.NewOrm()
+	var book Book
+	querySeter := o.QueryTable(TNBook()).Filter("book_id", bookId)
+	querySeter.One(&book)
+
+	//重新发布
+	var documents []*Document
+	_, err := o.QueryTable(TNDocuments()).Filter("book_id", bookId).Limit(5000).All(&documents, "document_id")
+	if err != nil {
+		return
+	}
+
+	documentStore := new(DocumentStore)
+	for _, doc := range documents {
+		content := strings.TrimSpace(documentStore.SelectField(doc.DocumentId, "content"))
+		doc.Release = content
+		attachList, err := NewAttachment().SelectByDocumentId(doc.DocumentId)
+		if err == nil && len(attachList) > 0 {
+			content := bytes.NewBufferString("<div class=\"attach-list\"><strong>附件</strong><ul>")
+			for _, attach := range attachList {
+				li := fmt.Sprintf("<li><a href=\"%s\" target=\"_blank\" title=\"%s\">%s</a></li>", attach.HttpPath, attach.Name, attach.Name)
+				content.WriteString(li)
+			}
+			content.WriteString("</ul></div>")
+			doc.Release += content.String()
+		}
+		o.Update(doc, "release")
+	}
+
+	//更新时间戳
+	if _, err = querySeter.Update(orm.Params{
+		"release_time": time.Now(),
+	}); err != nil {
+		logs.Error(err.Error())
+	}
 }

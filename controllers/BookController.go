@@ -322,3 +322,35 @@ func (c *BookController) SaveBook() {
 
 	c.JsonResult(0, "ok", bookResult)
 }
+
+//发布图书.
+func (c *BookController) Release() {
+	identify := c.GetString("identify")
+	bookId := 0
+	if c.Member.IsAdministrator() {
+		book, err := models.NewBook().Select("identify", identify)
+		if err != nil {
+			logs.Error(err)
+		}
+		bookId = book.BookId
+	} else {
+		book, err := models.NewBookData().SelectByIdentify(identify, c.Member.MemberId)
+		if err != nil {
+			c.JsonResult(1, "未知错误")
+		}
+		if book.RoleId != common.BookAdmin && book.RoleId != common.BookFounder && book.RoleId != common.BookEditor {
+			c.JsonResult(1, "权限不足")
+		}
+		bookId = book.BookId
+	}
+
+	if exist := utils.BooksRelease.Exist(bookId); exist {
+		c.JsonResult(1, "正在发布中，请稍后操作")
+	}
+
+	go func(identify string) {
+		models.NewDocument().ReleaseContent(bookId, c.BaseUrl())
+	}(identify)
+
+	c.JsonResult(0, "已发布")
+}
