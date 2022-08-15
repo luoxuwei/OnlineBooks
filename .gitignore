@@ -58,6 +58,7 @@ Thumbs.db
 .fseventsd
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
+store/
 
 # IDE 和编辑器 #
 ######################
