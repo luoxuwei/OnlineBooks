@@ -30,6 +30,20 @@ type Document struct {
 	Markdown     string        `orm:"-" json:"markdown"`
 }
 
+//联合唯一索引
+func (m *Document) TableUnique() [][]string {
+	return [][]string{
+		[]string{"BookId", "Identify"},
+	}
+}
+
+//图书详情页，GetMenuTop章节目录的查询优化
+func (m *Document) TableIndex() [][]string {
+	return [][]string{
+		[]string{"BookId", "ParentId", "OrderSort"},
+	}
+}
+
 func (m *Document) TableName() string {
 	return TNDocuments()
 }
