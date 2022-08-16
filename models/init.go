@@ -18,7 +18,8 @@ func init() {
 		new(Score),
 		new(Collection),
 		new(Fans),
-		new(Comments),)
+		//new(Comments),
+		)
 }
 
 /*
@@ -53,8 +54,9 @@ func TNAttachment() string {
 	return "md_attachment"
 }
 
-func TNComments() string {
-	return "md_comments"
+//分表，评论表以book id为依据拆成两个表
+func TNComments(bookid int) string {
+	return fmt.Sprintf("md_comments_%04d", bookid%2)
 }
 
 func TNScore() string {
