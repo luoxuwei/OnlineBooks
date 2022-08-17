@@ -47,7 +47,7 @@ func (m *Collection) TableUnique() [][]string {
 //@return           cancel      是否是取消收藏
 func (m *Collection) Collection(uid, bid int) (cancel bool, err error) {
 	var star = Collection{MemberId: uid, BookId: bid}
-	o := GetOrm("w")
+	o := GetOrm("uaw")
 	qs := o.QueryTable(TNCollection())
 	o.Read(&star, "MemberId", "BookId")
 	if star.Id > 0 { //取消收藏
@@ -66,7 +66,7 @@ func (m *Collection) Collection(uid, bid int) (cancel bool, err error) {
 }
 
 func (m *Collection) List(mid, p, listRows int) (cnt int64, books []CollectionData, err error) {
-	o := GetOrm("r")
+	o := GetOrm("uar")
 	filter := o.QueryTable(TNCollection()).Filter("member_id", mid)
 	if cnt, _ = filter.Count(); cnt > 0 {
 		// sql := "select b.*,m.nickname from " + TNBook() + " b left join " + TNCollection() + " s on s.book_id=b.book_id left join " + TNMembers() + " m on m.member_id=b.member_id where s.member_id=? order by id desc limit %v offset %v"
@@ -96,7 +96,7 @@ func (m *Collection) DoesCollection(uid, bid interface{}) bool {
 	var star Collection
 	star.MemberId, _ = strconv.Atoi(fmt.Sprintf("%v", uid))
 	star.BookId, _ = strconv.Atoi(fmt.Sprintf("%v", bid))
-	GetOrm("r").Read(&star, "MemberId", "BookId")
+	GetOrm("uar").Read(&star, "MemberId", "BookId")
 	if star.Id > 0 {
 		return true
 	}

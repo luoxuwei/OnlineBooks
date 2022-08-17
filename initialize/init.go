@@ -10,4 +10,5 @@ func init() {
 	orm.RegisterDriver("mysql", orm.DRMySQL)
     dbinit()
 	dbinit("r")
+	dbinit("uaw", "uar") //社区库
 }
