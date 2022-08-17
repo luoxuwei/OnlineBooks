@@ -57,7 +57,7 @@ func NewDocument() *Document {
 
 func (m *Document) GetMenuTop(bookId int) (docs []*Document, err error) {
 	var docsAll []*Document
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	cols := []string{"document_id", "document_name", "member_id", "parent_id", "book_id", "identify"}
 	fmt.Println("---------------start")
 	_, err = o.QueryTable(m.TableName()).Filter("book_id", bookId).Filter("parent_id", 0).OrderBy("order_sort", "document_id").Limit(5000).All(&docsAll, cols...)
@@ -70,7 +70,7 @@ func (m *Document) GetMenuTop(bookId int) (docs []*Document, err error) {
 
 //根据指定字段查询一条文档
 func (m *Document) SelectByIdentify(BookId, Identify interface{}) (*Document, error) {
-	err := orm.NewOrm().QueryTable(m.TableName()).Filter("BookId", BookId).Filter("Identify", Identify).One(m)
+	err := GetOrm("r").QueryTable(m.TableName()).Filter("BookId", BookId).Filter("Identify", Identify).One(m)
 	return m, err
 }
 
@@ -80,7 +80,7 @@ func (m *Document) SelectByDocId(id int) (doc *Document, err error) {
 		return m, errors.New("Invalid parameter")
 	}
 
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	err = o.QueryTable(m.TableName()).Filter("document_id", id).One(m)
 	if err == orm.ErrNoRows {
 		return m, errors.New("数据不存在")
@@ -91,7 +91,7 @@ func (m *Document) SelectByDocId(id int) (doc *Document, err error) {
 
 //插入和更新文档
 func (m *Document) InsertOrUpdate(cols ...string) (id int64, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	id = int64(m.DocumentId)
 	m.ModifyTime = time.Now()
 	m.DocumentName = strings.TrimSpace(m.DocumentName)
@@ -117,7 +117,7 @@ func (m *Document) InsertOrUpdate(cols ...string) (id int64, err error) {
 //删除文档及其子文档
 func (m *Document) Delete(docId int) error {
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	modelStore := new(DocumentStore)
 
 	if doc, err := m.SelectByDocId(docId); err == nil {
@@ -148,7 +148,7 @@ func (m *Document) ReleaseContent(bookId int, baseUrl string) {
 	utils.BooksRelease.Set(bookId)
 	defer utils.BooksRelease.Delete(bookId)
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	var book Book
 	querySeter := o.QueryTable(TNBook()).Filter("book_id", bookId)
 	querySeter.One(&book)

@@ -3,7 +3,6 @@ package models
 import (
 	"errors"
 	"fmt"
-	"github.com/beego/beego/v2/client/orm"
 	"github.com/beego/beego/v2/core/logs"
 	"strconv"
 	"strings"
@@ -40,7 +39,7 @@ func (m *Comments) BookComments(page, size, bookId int) (comments []BookComments
 	// _, err = GetOrm("w").Raw(sql, bookId).QueryRows(&comments)
 	// return
 
-	o := orm.NewOrm()
+	o := GetOrm("r")
 
 	sql := `select book_id,uid,content,time_create from ` + TNComments(bookId) + ` where book_id=? limit %v offset %v`
 	sql = fmt.Sprintf(sql, size, (page-1)*size)
@@ -57,7 +56,7 @@ func (m *Comments) BookComments(page, size, bookId int) (comments []BookComments
 	uidstr := strings.Join(uids, ",")
 	sql = `select member_id,avatar,nickname from md_members where member_id in(` + uidstr + `)`
 	members := []Member{}
-	_, err = orm.NewOrm().Raw(sql).QueryRows(&members)
+	_, err = GetOrm("r").Raw(sql).QueryRows(&members)
 	if nil != err {
 		return
 	}
@@ -107,7 +106,7 @@ func (m *Comments) AddComments(uid, bookId int, content string) (err error) {
 	second := 10
 	sql := `select id from ` + TNComments(bookId) + ` where uid=? and time_create>? order by id desc`
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	o.Raw(sql, uid, time.Now().Add(-time.Duration(second)*time.Second)).QueryRow(&comment)
 	if comment.Id > 0 {
 		return errors.New(fmt.Sprintf("您距离上次发表评论时间小于 %v 秒，请歇会儿再发。", second))
@@ -140,7 +139,7 @@ type BookScoresResult struct {
 //查询用户对文档的评分
 func (m *Score) BookScoreByUid(uid, bookId interface{}) int {
 	var score Score
-	orm.NewOrm().QueryTable(TNScore()).Filter("uid", uid).Filter("book_id", bookId).One(&score, "score")
+	GetOrm("r").QueryTable(TNScore()).Filter("uid", uid).Filter("book_id", bookId).One(&score, "score")
 	return score.Score
 }
 
@@ -148,7 +147,7 @@ func (m *Score) BookScoreByUid(uid, bookId interface{}) int {
 func (m *Score) BookScores(p, listRows, bookId int) (scores []BookScoresResult, err error) {
 	sql := `select s.score,s.time_create,m.avatar,m.nickname from ` + TNScore() + ` s left join ` + TNMembers() + ` m on m.member_id=s.uid where s.book_id=? order by s.id desc limit %v offset %v`
 	sql = fmt.Sprintf(sql, listRows, (p-1)*listRows)
-	_, err = orm.NewOrm().Raw(sql, bookId).QueryRows(&scores)
+	_, err = GetOrm("r").Raw(sql, bookId).QueryRows(&scores)
 	return
 }
 
@@ -156,7 +155,7 @@ func (m *Score) BookScores(p, listRows, bookId int) (scores []BookScoresResult, 
 //score的值只能是1-5，然后需要对scorex10，50则表示5.0分
 func (m *Score) AddScore(uid, bookId, score int) (err error) {
 	//查询评分是否已存在
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	var scoreObj = Score{Uid: uid, BookId: bookId}
 	o.Read(&scoreObj, "uid", "book_id") //Read参数里，后面不加任何值，就是以主键查的，这里要通过uid和book id来查。
 	if scoreObj.Id > 0 { //评分已存在
@@ -168,7 +167,7 @@ func (m *Score) AddScore(uid, bookId, score int) (err error) {
 	score = score * 10
 	scoreObj.Score = score
 	scoreObj.TimeCreate = time.Now()
-	orm.NewOrm().Insert(&scoreObj)
+	GetOrm("w").Insert(&scoreObj)
 	if scoreObj.Id > 0 { //评分添加成功，更行当前书籍项目的评分
 		//评分人数+1
 		var book = Book{BookId: bookId}

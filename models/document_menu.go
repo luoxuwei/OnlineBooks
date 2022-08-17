@@ -2,10 +2,9 @@ package models
 
 import (
 	"bytes"
+	beego "github.com/beego/beego/v2/server/web"
 	"html/template"
 	"strconv"
-	"github.com/beego/beego/v2/client/orm"
-	beego "github.com/beego/beego/v2/server/web"
 )
 
 //图书目录
@@ -42,7 +41,7 @@ func (m *Document) GetMenu(bookId int, selectedId int, isEdit ...bool) ([]*Docum
 	trees := make([]*DocumentMenu, 0)
 	var docs []*Document
 
-	count, err := orm.NewOrm().QueryTable(m).Filter("book_id", bookId).OrderBy("order_sort", "identify").Limit(2000).All(&docs, "document_id", "document_name", "parent_id", "identify", "version")
+	count, err := GetOrm("r").QueryTable(m).Filter("book_id", bookId).OrderBy("order_sort", "identify").Limit(2000).All(&docs, "document_id", "document_name", "parent_id", "identify", "version")
 	if err != nil {
 		return trees, err
 	}

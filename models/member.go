@@ -38,7 +38,7 @@ func NewMember() *Member {
 
 func (m *Member) Find(id int) (*Member, error) {
 	m.MemberId = id
-	if err := orm.NewOrm().Read(m); err != nil {
+	if err := GetOrm("r").Read(m); err != nil {
 		return m, err
 	}
 	m.RoleName = common.Role(m.Role)
@@ -56,7 +56,7 @@ func (m *Member) Update(cols ...string) error {
 	if m.Email == "" {
 		return errors.New("邮箱不能为空")
 	}
-	if _, err := orm.NewOrm().Update(m, cols...); err != nil {
+	if _, err := GetOrm("w").Update(m, cols...); err != nil {
 		return err
 	}
 	return nil
@@ -65,7 +65,7 @@ func (m *Member) Update(cols ...string) error {
 //登录
 func (m *Member) Login(account string, password string) (*Member, error) {
 	member := &Member{}
-	err := orm.NewOrm().QueryTable(m.TableName()).Filter("account", account).Filter("status", 0).One(member)
+	err := GetOrm("r").QueryTable(m.TableName()).Filter("account", account).Filter("status", 0).One(member)
 
 	if err != nil {
 		return member, errors.New("用户不存在")
@@ -94,7 +94,7 @@ func (m *Member) Add() error {
 
 	cond := orm.NewCondition().Or("email", m.Email).Or("nickname", m.Nickname).Or("account", m.Account)
 	var one Member
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	if o.QueryTable(m.TableName()).SetCond(cond).One(&one, "member_id", "nickname", "account", "email"); one.MemberId > 0 {
 		if one.Nickname == m.Nickname {
 			return errors.New("昵称已存在")
@@ -126,7 +126,7 @@ func (m *Member) Add() error {
 //获取昵称
 func (m *Member) GetNicknameByUid(id interface{}) string {
 	var user Member
-	if err := orm.NewOrm().QueryTable(TNMembers()).Filter("member_id", id).One(&user, "nickname"); err != nil {
+	if err := GetOrm("r").QueryTable(TNMembers()).Filter("member_id", id).One(&user, "nickname"); err != nil {
 		logs.Error(err.Error())
 	}
 
@@ -136,12 +136,12 @@ func (m *Member) GetNicknameByUid(id interface{}) string {
 //获取用户名
 func (m *Member) GetUsernameByUid(id interface{}) string {
 	var user Member
-	orm.NewOrm().QueryTable(TNMembers()).Filter("member_id", id).One(&user, "account")
+	GetOrm("r").QueryTable(TNMembers()).Filter("member_id", id).One(&user, "account")
 	return user.Account
 }
 
 //根据用户名获取用户信息
 func (m *Member) GetByUsername(username string) (member Member, err error) {
-	err = orm.NewOrm().QueryTable(TNMembers()).Filter("account", username).One(&member)
+	err = GetOrm("r").QueryTable(TNMembers()).Filter("account", username).One(&member)
 	return
 }

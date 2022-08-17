@@ -1,7 +1,5 @@
 package models
 
-import "github.com/beego/beego/v2/client/orm"
-
 type Relationship struct {
 	RelationshipId int `orm:"pk;auto;" json:"relationship_id"`
 	MemberId       int `json:"member_id"`
@@ -25,12 +23,12 @@ func NewRelationship() *Relationship {
 }
 
 func (m *Relationship) Select(bookId, memberId int) (*Relationship, error) {
-	err := orm.NewOrm().QueryTable(m.TableName()).Filter("book_id", bookId).Filter("member_id", memberId).One(m)
+	err := GetOrm("r").QueryTable(m.TableName()).Filter("book_id", bookId).Filter("member_id", memberId).One(m)
 	return m, err
 }
 
 func (m *Relationship) SelectRoleId(bookId, memberId int) (int, error) {
-	err := orm.NewOrm().QueryTable(m.TableName()).Filter("book_id", bookId).Filter("member_id", memberId).One(m, "role_id")
+	err := GetOrm("r").QueryTable(m.TableName()).Filter("book_id", bookId).Filter("member_id", memberId).One(m, "role_id")
 	if err != nil {
 		return 0, err
 	}
@@ -38,11 +36,11 @@ func (m *Relationship) SelectRoleId(bookId, memberId int) (int, error) {
 }
 
 func (m *Relationship) Insert() error {
-	_, err := orm.NewOrm().Insert(m)
+	_, err := GetOrm("w").Insert(m)
 	return err
 }
 
 func (m *Relationship) Update() error {
-	_, err := orm.NewOrm().Update(m)
+	_, err := GetOrm("w").Update(m)
 	return err
 }

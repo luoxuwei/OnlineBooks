@@ -9,4 +9,5 @@ func init() {
 	sysinit()
 	orm.RegisterDriver("mysql", orm.DRMySQL)
     dbinit()
+	dbinit("r")
 }

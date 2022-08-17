@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/beego/beego/v2/client/orm"
+	"github.com/beego/beego/v2/core/logs"
 )
 
 func init() {
@@ -91,6 +92,22 @@ func IncOrDec(table string, field string, condition string, incre bool, step ...
 		s = step[0]
 	}
 	sql := fmt.Sprintf("update %v set %v=%v%v%v where %v", table, field, field, mark, s, condition)
-	_, err = orm.NewOrm().Raw(sql).Exec()
+	_, err = GetOrm("w").Raw(sql).Exec()
 	return
+}
+
+//获取orm对象
+//@param alias 数据库alias
+func GetOrm(alias string) orm.Ormer {
+	o := orm.NewOrm()
+	if len(alias) > 0 {
+		logs.Debug("Using Alias : " + alias)
+		if "w" == alias {
+			o = orm.NewOrmUsingDB("default")
+		} else {
+			o = orm.NewOrmUsingDB(alias)
+		}
+	}
+
+	return o
 }

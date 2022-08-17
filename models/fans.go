@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"github.com/beego/beego/v2/client/orm"
 	"strconv"
 	"strings"
 )
@@ -34,7 +33,7 @@ func (m *Fans) TableUnique() [][]string {
 
 //查询粉丝
 func (m *Fans) FansList(mid, page, pageSize int) (fans []FansData, total int64, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	total, _ = o.QueryTable(TNFans()).Filter("member_id", mid).Count() //用户粉丝总数
 	if total > 0 {
 		// sql := fmt.Sprintf(
@@ -54,7 +53,7 @@ func (m *Fans) FansList(mid, page, pageSize int) (fans []FansData, total int64, 
 			}
 			fansIdStr := strings.Join(fansIds, ",")
 			sql = "select member_id,account,avatar,nickname from md_members where member_id in(" + fansIdStr + ")"
-			_, err = orm.NewOrm().Raw(sql).QueryRows(&fans)
+			_, err = GetOrm("r").Raw(sql).QueryRows(&fans)
 		}
 
 	}
@@ -63,7 +62,7 @@ func (m *Fans) FansList(mid, page, pageSize int) (fans []FansData, total int64, 
 
 //查询关注的人
 func (m *Fans) FollowList(fansId, page, pageSize int) (fans []FansData, total int64, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	total, _ = o.QueryTable(TNFans()).Filter("fans_id", fansId).Count() //关注总数
 	if total > 0 {
 		// sql := fmt.Sprintf(
@@ -83,7 +82,7 @@ func (m *Fans) FollowList(fansId, page, pageSize int) (fans []FansData, total in
 			}
 			memberIdStr := strings.Join(memberIds, ",")
 			sql = "select member_id,account,avatar,nickname from md_members where member_id in(" + memberIdStr + ")"
-			_, err = orm.NewOrm().Raw(sql).QueryRows(&fans)
+			_, err = GetOrm("r").Raw(sql).QueryRows(&fans)
 		}
 	}
 	return
@@ -92,14 +91,14 @@ func (m *Fans) FollowList(fansId, page, pageSize int) (fans []FansData, total in
 //查询是否存在关注关系
 func (m *Fans) Relation(mid, fansId interface{}) (ok bool) {
 	var fans Fans
-	orm.NewOrm().QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId).One(&fans)
+	GetOrm("r").QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId).One(&fans)
 	return fans.Id != 0
 }
 
 //关注或取消关注
 func (m *Fans) FollowOrCancel(mid, fansId int) (cancel bool, err error) {
 	var fans Fans
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	qs := o.QueryTable(TNFans()).Filter("member_id", mid).Filter("fans_id", fansId)
 	qs.One(&fans)
 	if fans.Id > 0 { //取消关注

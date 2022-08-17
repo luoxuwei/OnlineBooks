@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"github.com/beego/beego/v2/client/orm"
 	"strconv"
 	"strings"
 )
@@ -48,7 +47,7 @@ func (m *Collection) TableUnique() [][]string {
 //@return           cancel      是否是取消收藏
 func (m *Collection) Collection(uid, bid int) (cancel bool, err error) {
 	var star = Collection{MemberId: uid, BookId: bid}
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	qs := o.QueryTable(TNCollection())
 	o.Read(&star, "MemberId", "BookId")
 	if star.Id > 0 { //取消收藏
@@ -67,7 +66,7 @@ func (m *Collection) Collection(uid, bid int) (cancel bool, err error) {
 }
 
 func (m *Collection) List(mid, p, listRows int) (cnt int64, books []CollectionData, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	filter := o.QueryTable(TNCollection()).Filter("member_id", mid)
 	if cnt, _ = filter.Count(); cnt > 0 {
 		// sql := "select b.*,m.nickname from " + TNBook() + " b left join " + TNCollection() + " s on s.book_id=b.book_id left join " + TNMembers() + " m on m.member_id=b.member_id where s.member_id=? order by id desc limit %v offset %v"
@@ -86,7 +85,7 @@ func (m *Collection) List(mid, p, listRows int) (cnt int64, books []CollectionDa
 			bidstr := strings.Join(bids, ",")
 
 			sql = "select b.*,m.nickname from md_books b left join md_members m on m.member_id=b.member_id where b.book_id in (" + bidstr + ")"
-			_, err = orm.NewOrm().Raw(sql).QueryRows(&books)
+			_, err = GetOrm("r").Raw(sql).QueryRows(&books)
 		}
 	}
 	return
@@ -97,7 +96,7 @@ func (m *Collection) DoesCollection(uid, bid interface{}) bool {
 	var star Collection
 	star.MemberId, _ = strconv.Atoi(fmt.Sprintf("%v", uid))
 	star.BookId, _ = strconv.Atoi(fmt.Sprintf("%v", bid))
-	orm.NewOrm().Read(&star, "MemberId", "BookId")
+	GetOrm("r").Read(&star, "MemberId", "BookId")
 	if star.Id > 0 {
 		return true
 	}

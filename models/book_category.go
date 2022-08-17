@@ -19,7 +19,7 @@ func (m *BookCategory) TableName() string {
 
 //根据书籍id查询分类id
 func (m *BookCategory) SelectByBookId(book_id int) (cates []Category, rows int64, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	sql := "select c.* from " + TNCategory() + " c left join " + TNBookCategory() + " bc on c.id=bc.category_id where bc.book_id=?"
 	rows, err = o.Raw(sql, book_id).QueryRows(&cates)
 	return
@@ -37,7 +37,7 @@ func (m *BookCategory) SetBookCates(bookId int, cids []string) {
 		tableBookCategory = TNBookCategory()
 	)
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	o.QueryTable(tableCategory).Filter("id__in", cids).All(&cates, "id", "pid")
 
 	cidMap := make(map[string]bool)
@@ -84,7 +84,7 @@ func CountCategory() {
 
 	var count []Count
 
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	sql := "select count(bc.id) cnt, bc.category_id from " + TNBookCategory() + " bc left join " + TNBook() + " b on b.book_id=bc.book_id where b.privately_owned=0 group by bc.category_id"
 	o.Raw(sql).QueryRows(&count)
 	if len(count) == 0 {

@@ -1,12 +1,11 @@
 package models
 
 import (
+	"OnlineBooks/utils/html2text"
 	"fmt"
-	"github.com/beego/beego/v2/client/orm"
 	"strconv"
 	"strings"
 	"time"
-	"OnlineBooks/utils/html2text"
 )
 
 // 文档搜索结果
@@ -62,7 +61,7 @@ func (m *DocumentSearch) SearchDocument(keyword string, bookId int, page, size i
 	}
 	like := "%" + keyword + "%"
 
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	o.Raw(sqlCount, like, like).QueryRow(&count)
 	cnt = count.Cnt
 	limit := fmt.Sprintf(" limit %v offset %v", size, (page-1)*size)
@@ -98,7 +97,7 @@ func (m *DocumentSearch) GetDocsById(id []int, withoutCont ...bool) (docs []Docu
 	var rows []DocumentData
 	var cnt int64
 
-	cnt, err = orm.NewOrm().Raw(sql).QueryRows(&rows)
+	cnt, err = GetOrm("r").Raw(sql).QueryRows(&rows)
 	if cnt > 0 {
 		docMap := make(map[int]DocumentData)
 		for _, row := range rows {

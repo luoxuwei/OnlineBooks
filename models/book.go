@@ -57,7 +57,7 @@ func (m *Book) HomeData(pageIndex, pageSize int, cid int, fields ...string) (boo
 	sqlCount := fmt.Sprintf(sqlFmt, "count(*) cnt")
 	fmt.Println(sql)
 	fmt.Println(sqlCount)
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	var params []orm.Params
 	if _, err := o.Raw(sqlCount).Values(&params); err == nil {
 		if len(params) > 0 {
@@ -101,7 +101,7 @@ func (book *Book) ToBookData() (m *BookData) {
 }
 
 func (m *Book) Select(field string, value interface{}, cols ...string) (book *Book, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	if len(cols) == 0 {
 		err = o.QueryTable(m.TableName()).Filter(field, value).One(m)
 	} else {
@@ -112,7 +112,7 @@ func (m *Book) Select(field string, value interface{}, cols ...string) (book *Bo
 
 //更新文档数量
 func (m *Book) RefreshDocumentCount(bookId int) {
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	docCount, err := o.QueryTable(TNDocuments()).Filter("book_id", bookId).Count()
 	if err == nil {
 		temp := NewBook()
@@ -125,7 +125,7 @@ func (m *Book) RefreshDocumentCount(bookId int) {
 }
 
 func (m *Book) SelectPage(pageIndex, pageSize, memberId int, PrivatelyOwned int) (books []*BookData, totalCount int, err error) {
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	sql1 := "select count(b.book_id) as total_count from " + TNBook() + " as b left join " +
 		TNRelationship() + " as r on b.book_id=r.book_id and r.member_id = ? where r.relationship_id > 0  and b.privately_owned=" + strconv.Itoa(PrivatelyOwned)
 
@@ -149,7 +149,7 @@ func (m *Book) SelectPage(pageIndex, pageSize, memberId int, PrivatelyOwned int)
 }
 
 func (m *Book) Insert() (err error) {
-	if _, err = orm.NewOrm().Insert(m); err != nil {
+	if _, err = GetOrm("w").Insert(m); err != nil {
 		return
 	}
 
@@ -171,7 +171,7 @@ func (m *Book) Insert() (err error) {
 func (m *Book) Update(cols ...string) (err error) {
 	bk := NewBook()
 	bk.BookId = m.BookId
-	o := orm.NewOrm()
+	o := GetOrm("w")
 	if err = o.Read(bk); err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (m *Book) SearchBook(wd string, page, size int) (books []Book, cnt int, err
 
 	wd = "%" + wd + "%"
 
-	o := orm.NewOrm()
+	o := GetOrm("r")
 	var count struct{ Cnt int }
 	err = o.Raw(sqlCount, wd, wd).QueryRow(&count)
 	if count.Cnt > 0 {
@@ -209,7 +209,7 @@ func (m *Book) GetBooksByIds(ids []int, fields ...string) (books []Book, err err
 		idArr = append(idArr, i)
 	}
 
-	rows, err := orm.NewOrm().QueryTable(TNBook()).Filter("book_id__in", idArr).All(&bs, fields...)
+	rows, err := GetOrm("r").QueryTable(TNBook()).Filter("book_id__in", idArr).All(&bs, fields...)
 	if rows > 0 {
 		//这里的两次循环是为了保证返回的books中的顺序与传入的ids的顺序一致。
 		bookMap := make(map[interface{}]Book)
