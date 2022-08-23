@@ -80,3 +80,45 @@ func flatHtml(htmlStr string) string {
 	}
 	return gq.Text()
 }
+
+func ElasticSearchBook(kw string, pageSize, page int) ([]int, int, error) {
+	var ids []int
+	count := 0
+
+	if page > 0 {
+		page = page - 1
+	} else {
+		page = 0
+	}
+	queryJson := `
+		{
+		    "query" : {
+		        "multi_match" : {
+		        "query":"%v",
+		        "fields":["book_name","description"]
+		        }
+		    },
+		    "_source":["book_id"],
+			"size": %v,
+			"from": %v
+		}
+	`
+
+	//elasticsearch api
+	host, _ := beego.AppConfig.String("elastic_host")
+	api := host + "mbooks/datas/_search"
+	queryJson = fmt.Sprintf(queryJson, kw, pageSize, page)
+
+	sj, err := utils.HttpPostJson(api, queryJson)
+	if nil == err {
+		count = sj.GetPath("hits", "total").MustInt()
+		resultArray := sj.GetPath("hits", "hits").MustArray()
+		for _, v := range resultArray {
+			if each_map, ok := v.(map[string]interface{}); ok {
+				id, _ := strconv.Atoi(each_map["_id"].(string))
+				ids = append(ids, id)
+			}
+		}
+	}
+	return ids, count, err
+}
