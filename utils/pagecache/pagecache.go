@@ -87,3 +87,19 @@ func cacheKey(controllerName, actionName string) string {
 
 	return ""
 }
+
+func ClearExpiredFiles() {
+	for k, _ := range cacheMap {
+		//文件存在
+		if b, _ := store.IsExist(context.Background(), k); b {
+			content, err := store.Get(context.Background(), k)
+			if err == nil {
+				v := content.(string)
+				//为空表示过期
+				if len(v) == 0 {
+					store.Delete(context.Background(), k)
+				}
+			}
+		}
+	}
+}
