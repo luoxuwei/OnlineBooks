@@ -30,10 +30,10 @@ type CookieRemember struct {
 func (c *BaseController) Finish() {
 	controllerName, actionName := c.GetControllerAndAction()
 
-	if pagecache.NeedWrite(controllerName, actionName) {
+	if pagecache.NeedWrite(controllerName, actionName, c.Ctx.Input.Params()) {
 		render, err := c.RenderString()
 		if nil == err && len(render) > 0 {
-			pagecache.Write(controllerName, actionName, &render)
+			pagecache.Write(controllerName, actionName, &render, c.Ctx.Input.Params())
 		}
 	}
 }
@@ -44,7 +44,7 @@ func (c *BaseController) Prepare() {
 	//如果有缓存，则返回缓存内容
 	controllerName, actionName := c.GetControllerAndAction()
 	if pagecache.InCacheList(controllerName, actionName) {
-		contentPtr, err := pagecache.Read(controllerName, actionName)
+		contentPtr, err := pagecache.Read(controllerName, actionName, c.Ctx.Input.Params())
 		if nil == err && len(*contentPtr) > 0 {
 			io.WriteString(c.Ctx.ResponseWriter, *contentPtr)
 			logs.Debug(controllerName + "-" + actionName + "read cache")

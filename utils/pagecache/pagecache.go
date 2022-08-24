@@ -16,6 +16,7 @@ var (
 	ExpireSec int64               = 0
 	store     *cache.FileCache    = nil
 	cacheMap  map[string]bool     = nil
+	paramMap  map[string][]string = nil
 )
 
 func InitCache() {
@@ -27,6 +28,13 @@ func InitCache() {
 	for _, v := range pagecacheList {
 		cacheMap[strings.ToLower(v)] = true
 	}
+
+	paramMap = make(map[string][]string)
+	pagecacheMap, _ := beego.AppConfig.GetSection("pagecache_param")
+	for k, v := range pagecacheMap {
+		sv := strings.Split(v, ";")
+		paramMap[k] = sv
+	}
 }
 
 func InCacheList(controllerName, actionName string) bool {
@@ -37,9 +45,9 @@ func InCacheList(controllerName, actionName string) bool {
 	return false
 }
 
-func NeedWrite(controllerName, actionName string) bool {
+func NeedWrite(controllerName, actionName string, params map[string]string) bool {
 	if InCacheList(controllerName, actionName) {
-		keyname := cacheKey(controllerName, actionName)
+		keyname := cacheKey(controllerName, actionName, params)
 		content, err := store.Get(context.Background(), keyname)
 		if err == nil {
 			if v := content.(string); len(v) > 0 {
@@ -54,8 +62,8 @@ func NeedWrite(controllerName, actionName string) bool {
 	return false
 }
 
-func Write(controllerName, actionName string, content *string) error {
-	keyname := cacheKey(controllerName, actionName)
+func Write(controllerName, actionName string, content *string, params map[string]string) error {
+	keyname := cacheKey(controllerName, actionName, params)
 	if len(keyname) == 0 {
 		return errors.New("未找到缓存key")
 	}
@@ -65,8 +73,8 @@ func Write(controllerName, actionName string, content *string) error {
 	return err
 }
 
-func Read(controllerName, actionName string) (*string, error) {
-	keyname := cacheKey(controllerName, actionName)
+func Read(controllerName, actionName string, params map[string]string) (*string, error) {
+	keyname := cacheKey(controllerName, actionName, params)
 	if len(keyname) == 0 {
 		return nil, errors.New("未找到缓存key")
 	}
@@ -79,9 +87,14 @@ func Read(controllerName, actionName string) (*string, error) {
 	return nil, err
 }
 
-func cacheKey(controllerName, actionName string) string {
+func cacheKey(controllerName, actionName string, paramArray ...map[string]string) string {
 	if len(controllerName) > 0 && len(actionName) > 0 {
 		rtnstr := strings.ToLower(controllerName + "_" + actionName)
+		if len(paramArray) > 0 {
+			for _, v := range paramMap[rtnstr] {
+				rtnstr = rtnstr + "_" + strings.ReplaceAll(v, ":", "") + "_" + paramArray[0][v]
+			}
+		}
 		return rtnstr
 	}
 
