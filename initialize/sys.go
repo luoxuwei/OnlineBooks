@@ -4,6 +4,7 @@ import (
 	"OnlineBooks/common"
 	"OnlineBooks/models"
 	"OnlineBooks/utils"
+	"OnlineBooks/utils/pagecache"
 	"encoding/gob"
 	beego "github.com/beego/beego/v2/server/web"
 	"path/filepath"
@@ -18,6 +19,14 @@ func sysinit() {
 	beego.BConfig.WebConfig.StaticDir["/uploads"] = uploads
 
 	registerFunctions()
+	//初始化pagecache
+	initPageCache()
+}
+
+func initPageCache() {
+	pagecache.BasePath = "./cache/staticpage"
+	pagecache.ExpireSec = 10
+	pagecache.InitCache()
 }
 
 //注册view里调用的函数

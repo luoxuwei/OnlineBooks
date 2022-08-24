@@ -4,6 +4,7 @@ import (
 	"OnlineBooks/common"
 	"OnlineBooks/models"
 	"OnlineBooks/utils"
+	"OnlineBooks/utils/pagecache"
 	"compress/gzip"
 	"encoding/json"
 	"github.com/beego/beego/v2/core/logs"
@@ -26,8 +27,31 @@ type CookieRemember struct {
 	Time     time.Time
 }
 
+func (c *BaseController) Finish() {
+	controllerName, actionName := c.GetControllerAndAction()
+
+	if pagecache.NeedWrite(controllerName, actionName) {
+		render, err := c.RenderString()
+		if nil == err && len(render) > 0 {
+			pagecache.Write(controllerName, actionName, &render)
+		}
+	}
+}
+
 //每个子类Controller公用方法调用前，都执行一下Prepare方法
 func (c *BaseController) Prepare() {
+
+	//如果有缓存，则返回缓存内容
+	controllerName, actionName := c.GetControllerAndAction()
+	if pagecache.InCacheList(controllerName, actionName) {
+		contentPtr, err := pagecache.Read(controllerName, actionName)
+		if nil == err && len(*contentPtr) > 0 {
+			io.WriteString(c.Ctx.ResponseWriter, *contentPtr)
+			logs.Debug(controllerName + "-" + actionName + "read cache")
+			c.StopRun()
+		}
+	}
+
 	c.Member = models.NewMember() //初始化
 	c.EnableAnonymous = false
 	//从session中获取用户信息
