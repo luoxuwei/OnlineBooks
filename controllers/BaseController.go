@@ -9,6 +9,9 @@ import (
 	"encoding/json"
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/session"
+    _ "github.com/beego/beego/v2/server/web/session/redis"
+	"golang.org/x/net/context"
 	"io"
 	"strings"
 	"time"
@@ -25,6 +28,26 @@ type CookieRemember struct {
 	MemberId int
 	Account  string
 	Time     time.Time
+}
+
+var globalSessions *session.Manager
+
+func init() {
+	sessionConf, _ := beego.AppConfig.String("sessionproviderconfig")
+	if len(sessionConf) == 0 {
+		return
+	}
+	sessionConfig := &session.ManagerConfig{
+		CookieName:"gosessionid",
+		EnableSetCookie: true,
+		Gclifetime:3600,
+		Maxlifetime: 3600,
+		Secure: false,
+		CookieLifeTime: 3600,
+		ProviderConfig: sessionConf,
+	}
+	globalSessions, _ = session.NewManager("redis",sessionConfig)
+	go globalSessions.GC()
 }
 
 func (c *BaseController) Finish() {
@@ -55,7 +78,22 @@ func (c *BaseController) Prepare() {
 	c.Member = models.NewMember() //初始化
 	c.EnableAnonymous = false
 	//从session中获取用户信息
-	if member, ok := c.GetSession(common.SessionName).(models.Member); ok && member.MemberId > 0 {
+	if globalSessions == nil {
+		c.Abort("500")
+	}
+	session, _ := globalSessions.SessionStart(c.Ctx.ResponseWriter, c.Ctx.Request)
+	defer session.SessionRelease(context.Background(), c.Ctx.ResponseWriter)
+	memberInSession := false
+	var member models.Member
+	memberObj := session.Get(context.Background(), common.SessionName)
+	if nil != memberObj {
+		member = memberObj.(models.Member)
+		if member.MemberId > 0 {
+			memberInSession = true
+		}
+	}
+
+	if memberInSession {
 		c.Member = &member
 	} else {
 		//如果Cookie中存在登录信息，从cookie中获取用户信息
@@ -123,13 +161,14 @@ func (c *BaseController) BaseUrl() string {
 
 // 设置登录用户信息
 func (c *BaseController) SetMember(member models.Member) {
+	session, _ := globalSessions.SessionStart(c.Ctx.ResponseWriter, c.Ctx.Request)
+	defer session.SessionRelease(context.Background(), c.Ctx.ResponseWriter)
 	if member.MemberId <= 0 {
-		c.DelSession(common.SessionName)
-		c.DelSession("uid")
-		c.DestroySession()
+		session.Delete(context.Background(), common.SessionName)
+		session.Delete(context.Background(), "uid")
 	} else {
-		c.SetSession(common.SessionName, member)
-		c.SetSession("uid", member.MemberId)
+		session.Set(context.Background(), common.SessionName, member)
+		session.Set(context.Background(), "uid", member.MemberId)
 	}
 }
 
