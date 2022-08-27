@@ -5,7 +5,7 @@ import (
 	_ "OnlineBooks/initialize"
 	"OnlineBooks/utils/pagecache"
 	"fmt"
-	"github.com/astaxie/beego/toolbox"
+	"github.com/beego/beego/v2/adapter/toolbox"
 	beego "github.com/beego/beego/v2/server/web"
 )
 

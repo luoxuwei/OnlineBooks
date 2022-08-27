@@ -3,6 +3,7 @@ package controllers
 import (
 	"OnlineBooks/common"
 	"OnlineBooks/models"
+	"OnlineBooks/utils/dynamicache"
 	"OnlineBooks/utils/store"
 	"bytes"
 	"encoding/json"
@@ -71,7 +72,6 @@ func (c *DocumentController) Index() {
 	if identify == "" {
 		c.Abort("404")
 	}
-	tab := strings.ToLower(c.GetString("tab"))
 
 	bookResult := c.getBookData(identify, token)
 	if bookResult.BookId == 0 { //没有阅读权限
@@ -79,19 +79,38 @@ func (c *DocumentController) Index() {
 		return
 	}
 
-	c.TplName = "document/intro.html"
 	c.Data["Book"] = bookResult
 
-	switch tab {
-	case "comment", "score":
-	default:
-		tab = "default"
-	}
+	c.TplName = "document/intro.html"
+	tab := strings.ToLower(c.GetString("tab", "default"))
 	c.Data["Tab"] = tab
-	c.Data["Menu"], _ = new(models.Document).GetMenuTop(bookResult.BookId)
-
-	c.Data["Comments"], _ = new(models.Comments).BookComments(1, 30, bookResult.BookId)
+	c.Data["Book"] = bookResult
+	//c.Data["Menu"], _ = new(models.Document).GetMenuTop(bookResult.BookId)
+	//c.Data["Comments"], _ = new(models.Comments).BookComments(1, 30, bookResult.BookId)
 	c.Data["MyScore"] = new(models.Score).BookScoreByUid(c.Member.MemberId, bookResult.BookId)
+
+	//动态缓存逻辑
+	cachekeyDocidx := "dynamcache_document_index_cdata:" + identify
+
+	//动态缓存c.Data["Menu"]
+	cachekeyDocidxMenu := cachekeyDocidx + "_menu"
+	var dataMenu []*models.Document
+	err := dynamicache.ReadStruct(cachekeyDocidxMenu, &dataMenu)
+	if nil != err {
+		dataMenu, _ = new(models.Document).GetMenuTop(bookResult.BookId)
+		dynamicache.WriteStruct(cachekeyDocidxMenu, dataMenu)
+	}
+	c.Data["Menu"] = dataMenu
+
+	//动态缓存c.Data["Comments"]
+	cachekeyDocidxComments := cachekeyDocidx + "_comments"
+	var dataComments []models.BookCommentsResult
+	err = dynamicache.ReadStruct(cachekeyDocidxComments, &dataComments)
+	if nil != err {
+		dataComments, _ = new(models.Comments).BookComments(1, 30, bookResult.BookId)
+		dynamicache.WriteStruct(cachekeyDocidxComments, dataComments)
+	}
+	c.Data["Comments"] = dataComments
 }
 
 //阅读器页面

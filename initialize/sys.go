@@ -4,6 +4,7 @@ import (
 	"OnlineBooks/common"
 	"OnlineBooks/models"
 	"OnlineBooks/utils"
+	"OnlineBooks/utils/dynamicache"
 	"OnlineBooks/utils/pagecache"
 	"encoding/gob"
 	beego "github.com/beego/beego/v2/server/web"
@@ -21,6 +22,15 @@ func sysinit() {
 	registerFunctions()
 	//初始化pagecache
 	initPageCache()
+	//初始化动态缓存
+	initDynamicache()
+}
+
+func initDynamicache() {
+	dynamicache.MaxOpen = 128
+	dynamicache.MaxIdle = 128
+	dynamicache.ExpireSec = 10
+	dynamicache.InitCache()
 }
 
 func initPageCache() {
