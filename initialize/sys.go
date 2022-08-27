@@ -6,6 +6,7 @@ import (
 	"OnlineBooks/utils"
 	"OnlineBooks/utils/dynamicache"
 	"OnlineBooks/utils/pagecache"
+	"OnlineBooks/utils/store"
 	"encoding/gob"
 	beego "github.com/beego/beego/v2/server/web"
 	"path/filepath"
@@ -24,6 +25,12 @@ func sysinit() {
 	initPageCache()
 	//初始化动态缓存
 	initDynamicache()
+	//初始化OSS
+	initOss()
+}
+
+func initOss() {
+	store.InitOss()
 }
 
 func initDynamicache() {

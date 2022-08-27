@@ -146,8 +146,15 @@ func (c *DocumentController) Read() {
 		if err != nil {
 			logs.Error(err)
 		} else {
+			ossConfig, _ := beego.AppConfig.String("oss_attach_domain")
+			ossdomain := strings.TrimRight(ossConfig, "/")
 			query.Find("img").Each(func(i int, contentSelection *goquery.Selection) {
-				if _, ok := contentSelection.Attr("src"); ok {
+				if src, ok := contentSelection.Attr("src"); ok {
+					if !(strings.HasPrefix(src, "https://") || strings.HasPrefix(src, "http://")) {
+						src = ossdomain + "/" + strings.TrimLeft(src, "./")
+						contentSelection.SetAttr("src", src)
+						logs.Debug(src)
+					}
 				}
 				if alt, _ := contentSelection.Attr("alt"); alt == "" {
 					contentSelection.SetAttr("alt", doc.DocumentName+" - 图"+fmt.Sprint(i+1))
@@ -462,6 +469,7 @@ func (c *DocumentController) Upload() {
 	if err != nil {
 		c.JsonResult(1, "保存文件失败")
 	}
+	err = store.OssPutObject(strings.TrimPrefix(filePath, common.WorkingDirectory), filePath) //上传到oss
 	attachment := models.NewAttachment()
 	attachment.BookId = bookId
 	attachment.Name = moreFile.Filename

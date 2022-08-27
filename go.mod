@@ -6,6 +6,8 @@ require github.com/beego/beego/v2 v2.0.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
+	github.com/astaxie/beego v1.12.3
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gomodule/redigo v2.0.0+incompatible
@@ -37,6 +39,7 @@ require (
 	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8 // indirect
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
 	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	golang.org/x/tools v0.0.0-20201211185031-d93e913c1a58 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.23.0 // indirect
